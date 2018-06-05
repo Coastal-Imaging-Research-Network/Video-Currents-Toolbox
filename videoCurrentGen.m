@@ -1,12 +1,12 @@
 function dataStruct = videoCurrentGen(stack,time,xy,vB,fkB,Twin,Tstep,varargin)
 
-%dataStruct = videoCurrentGen(data, time, xy, vBounds, fkBounds, Twin, Tstep {,plotFlag})
+%dataStruct = videoCurrentGen(stack, time, xy, vBounds, fkBounds, Twin, Tstep {,plotFlag})
 %
 %  Returns current from video stacks at times in t
 %  by converting a block of the stack to f,ky space to find
 %  the velocity of the advected surface structure(usually foam).
 %  INPUTS
-%    data - grayscale image of timestack, size [MxN]
+%    stack - grayscale image of timestack, size [MxN]
 %    time - time line (starting from zero) of stack, size [Mx1]
 %    xy - x,y position [Nx2] of each pixel in a dimension (should be equally spaced!)
 %    Twin - the time length of the FFT window (in points)
@@ -37,8 +37,8 @@ function dataStruct = videoCurrentGen(stack,time,xy,vB,fkB,Twin,Tstep,varargin)
 
 
 % take care of inputs and constants
-dt = abs(mean(diff(time)));
-y = cumsum([0 0; sqrt(sum(diff(xy).^2,2))]);
+dt = abs(mean(diff(time*24*3600))); 
+y = cumsum([0; 0; sqrt(sum(diff(xy).^2,2))]); 
 vAngle = angle(diff(xy([1 end],:)).*[1 i]);
 dy = abs(mean(diff(y)));
 N = size(stack,2);
@@ -89,7 +89,7 @@ if isempty(fkB) % set the f and k bounds defaults if needed
 end
 K = repmat(k,length(f),1);
 F = repmat(f,1,length(k));
-FKind = find(abs(F)<fkB(1) &  abs(F)>fkB(2) & abs(K)>fkB(3)) & abs(K)<fkB(4));
+FKind = find(abs(F)<fkB(1) &  abs(F)>fkB(2) & abs(K)>fkB(3) & abs(K)<fkB(4)); 
 Smask = nan*ones(size(K));
 Smask(FKind) = 1;
 fkny = [max(abs(F(~isnan(Smask(:))))) max(abs(K(~isnan(Smask(:)))))];
@@ -118,8 +118,8 @@ for wind = 0:(Nb-1)
   S = S(gf,gk).*Smask;
 
   % calculate v-k spectrum
-  for i = 1:length(k)
-    Sv(:,i) = interp1(f/k(i),S(:,i),v','linear');
+  for ii = 1:length(k) 
+    Sv(:,ii) = interp1(f/k(ii),S(:,ii),v','linear');
   end
 
   % calculate S(v)
