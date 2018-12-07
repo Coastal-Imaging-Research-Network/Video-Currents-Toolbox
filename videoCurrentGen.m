@@ -98,6 +98,18 @@ fkny = [max(abs(F(~isnan(Smask(:))))) max(abs(K(~isnan(Smask(:)))))];
 j = 1;
 Nb = floor((size(stack,1)-(Twin-Tstep))/Tstep); %blocks
 warning off
+
+% set up output structure
+dataStruct.meanI = nan(1,Nb);
+dataStruct.QCspan = nan(1,Nb);
+dataStruct.meanV = nan(1,Nb);
+dataStruct.stdV = nan(1,Nb);
+dataStruct.prob = nan(1,Nb);
+dataStruct.ci = nan(Nb,2);
+dataStruct.cispan = nan(1,Nb);
+dataStruct.SNR = nan(1,Nb);
+dataStruct.t = nan(1,Nb);
+
 for wind = 0:(Nb-1)
   % window data and construct
   cind = ((wind*Tstep)+1):((wind*Tstep)+Twin);
@@ -135,7 +147,8 @@ for wind = 0:(Nb-1)
   % fit the S(v) to the model [Vamp Vmu Vsigma offset]
   beta0 = [maxv v(maxvind) 0.25 nanmean(V)];% nanmedian(V) 5];
   jv = v(gind);
-  vFun = @(beta0,jv) SofVwave3(beta0,jv,fkny);
+  vFun = @(beta0,jv) SofVwaveI(beta0,jv,fkny);
+  try % try fit, if it fails you get no plots and get nans for output
   [beta,resnorm,resid,eflag,outputs,lambda,jacb] = lsqcurvefit(vFun,double(beta0),jv,double(V(gind)),LB,UB,opts);
   fitted = SofVwaveI(beta,v(gind),fkny);
   dataStruct.meanV(j) = beta(2);
@@ -194,6 +207,10 @@ for wind = 0:(Nb-1)
   j = j+1;
   wherestep = [num2str(wind + 1) ' of ' num2str(Nb)];
   fprintf(1,'	step %s		\r',wherestep);
+  catch
+    warning('Nonlinear fit failed - skipping this record')
+end
+
 end
 warning on
 
