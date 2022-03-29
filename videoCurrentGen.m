@@ -147,7 +147,7 @@ for wind = 0:(Nb-1)
     % fit the S(v) to the model [Vamp Vmu Vsigma offset]
     beta0 = [maxv v(maxvind) 0.25 nanmean(V)];% nanmedian(V) 5];
     jv = v(gind);
-    vFun = @(beta0,jv) SofVwave3(beta0,jv,fkny);
+    vFun = @(beta0,jv) SofVwaveI(beta0,jv,fkny);
     try % try fit, if it fails you get no plots and get nans for output
         [beta,resnorm,resid,eflag,outputs,lambda,jacb] = lsqcurvefit(vFun,double(beta0),jv,double(V(gind)),LB,UB,opts);
         fitted = SofVwaveI(beta,v(gind),fkny);
