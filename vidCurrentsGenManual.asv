@@ -6,8 +6,7 @@
 % time: time vector (matlab datenum) with size [Mx1s]
 % xy: xyzAll [Nx3] & x-search locations
 % vB: (vBounds) [minV maxV], units m/s or vector of desired velocity steps,
-%       to set this to empty, [], to use defaults [-3 3] ***These defaults
-%       will change****
+%       to set this to empty, [], to use defaults [-3 3]
 % fkB: (fkBounds) [fmin fmax kmin kmax], vector of frequency and wavenumber
 %      bounds energy out of side of these bounds will be set to 0.  Useful
 %      to eliminate some of the wave contamination that leaks in.  Set this
@@ -31,7 +30,7 @@ fileSearchPath = ("C:\Users\13emo3\OneDrive - Queen's University\PhD\Chapter 4 v
 % time is loaded as epoch, so convert it to datetime for plotting
 % interpretation
 mtime = (T/(3600*24)+datenum(1970,1,1))';
-dTime = datetime(mtime, 'ConvertFrom', 'datenum');
+dTime = datetime(params.mtime, 'ConvertFrom', 'datenum');
 
 %% Part 2: "sorted"
 % Sort data & discard unneeded data
@@ -90,10 +89,9 @@ if sum(bad, 'all') > 0
     gridded.stack = fillmissing(gridded.stack, 'nearest'); % Fill NaNs with mean
 end
 
-% clearvars unik bad
-
-%% Part 5: Apply Radon
-% This section limits the velocity search bounds (vBounds) to + or - 
+%clearvars unik bad
+%% Part 3: Apply Radon
+% This section limits the velocity search bounds (vB) to + or - 
 
 % This part could be optional -- sometimes the direction is known
 
@@ -115,15 +113,15 @@ dominant_angle = theta(max_col);
 % Interpret the dominant angle
 if dominant_angle > 95 && dominant_angle < 175
     disp('The foam is drifting north');
-    params.vBounds = [0.01 2];                                 % <--- *see note in "vidCurrentsParams.m"
+    params.vB = [0.01 2];                                 % <--- *see note in "vidCurrentsParams.m"
 elseif dominant_angle > 5 && dominant_angle < 85
     disp('The foam is drifting south');
-    params.vBounds = [-2 -0.01];
+    params.vB = [-2 -0.01];
 else
     disp('The dominant angle is within the excluded range.');
 end
 
-%% Part 6: Run the main function 
+%% Run the main function 
 
 % Initialize the video currents table
 vc150 = table();
@@ -161,28 +159,49 @@ for iCenter = 1:length(tileCenters)
     end
 
     % Run video-current-toolbox
-    vC = videoCurrentGen(gridded.stack(i1:i2,:)', params.mtime, gridded.xy(i1:i2,:), params.vBounds, params.fkBounds, params.tWindow, params.tStep, params.plotFlag);
+    vC = videoCurrentGen(gridded.stack(i1:i2,:)', params.mtime, gridded.xy(i1:i2,:), params.vB, params.fkB, params.Twin, params.Tstep, params.plotFlag);
     vC.ci1 = vC.ci(:, 1);
     vC.ci2 = vC.ci(:, 2);
     vC = rmfield(vC, "ci");
+    %vC.dTime = datetime(vC.t, 'ConvertFrom', 'datenum');
 
-    % Save vC to the table 
+    % Calculate mean and standard deviation of meanV
+    vC.mean_meanV = mean(vC.meanV);
+    vC.std_meanV = std(vC.meanV);
+
+    % Identify indices where meanV values are more than 3 standard deviations from the mean
+    vC.outlierIndices = abs(vC.meanV - vC.mean_meanV) > 2 * vC.std_meanV;
+
+    % List of all fields in the structure
+    %fields = fieldnames(vC);
+    % Remove data at these indices for all fields
+    %for i = 1:numel(fields)
+    %    vC.(fields{i})(outlierIndices) = [];
+    %end
+
+    % Save vC to the table
     vc150.vC(count) = vC;
     vc150.y(count) = centerY;
+    vc150.tileSize(count) = currentTileSize;
+
     count = count + 1;
 end
 
+%vc150 = sortrows(vc150, 2); % Sort by y-coordinate    %%TAKE OUT
 
 % clearvars -except vc175 gridded
-%% Part 7a: Filter & Combine Results 
-% New method of calculating single meanV from timeseries 
-
+% Weighted meanV
 for i = 1:height(vc150)
-    vc150.wV(i) = wmean(vc150.vC(i).meanV, 1./vc150.vC(i).stdV, 'omitnan');
+    try
+        vc150.wV(i) = wmean(vc150.vC(i).meanV, 1./vc150.vC(i).stdV, 'omitnan');
+        vc150.snr(i) = wmean(vc150.vC(i).meanV, abs(vc150.vC(i).SNR), 'omitnan');
+        vc150.mV(i) = mean(vc150.vC(i).meanV, "omitnan"); 
+    catch
+    end
 end
 
-%% Part 7b: Filter & Combine Results 
-% Old method, as described in paragraph [47] in Chickadel et al., 2003
+% Post-Alg Filtering
+% From paragraph [47] in Chickadel et al., 2003
 
 for i = 1:height(vc150)
     % Criteria 1:
