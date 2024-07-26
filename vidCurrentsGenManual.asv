@@ -6,7 +6,8 @@
 % time: time vector (matlab datenum) with size [Mx1s]
 % xy: xyzAll [Nx3] & x-search locations
 % vB: (vBounds) [minV maxV], units m/s or vector of desired velocity steps,
-%       to set this to empty, [], to use defaults [-3 3]
+%       to set this to empty, [], to use defaults [-3 3] ***These defaults
+%       will change****
 % fkB: (fkBounds) [fmin fmax kmin kmax], vector of frequency and wavenumber
 %      bounds energy out of side of these bounds will be set to 0.  Useful
 %      to eliminate some of the wave contamination that leaks in.  Set this
@@ -20,78 +21,47 @@
 %% Part 1: Set Up
 
 % params definitions moved to a new file 
+paramsFile = ("vidCurrentsParams");
+eval(paramsFile);
 
 % fileSearchPath is the folder within which the function vBarRawFile will
 % search for the "raw" data file 
 fileSearchPath = ("C:\Users\13emo3\OneDrive - Queen's University\PhD\Chapter 4 vBar\Chapter 4 Data\FTP Downloads");
 
-[T, RAW, XYZ, CAM] = loadVbarRawFile(fileSearchPath, params.searchDate, params.searchX);
+[T, RAW, XYZ] = loadVbarRawFile(fileSearchPath, params.searchDate, params.searchX);
 
 % time is loaded as epoch, so convert it to datetime for plotting
 % interpretation
 mtime = (T/(3600*24)+datenum(1970,1,1))';
-dTime = datetime(params.mtime, 'ConvertFrom', 'datenum');
+dTime = datetime(mtime, 'ConvertFrom', 'datenum');
 
-%% Part 2: "sorted"
-% Sort data & discard unneeded data
-% Get the sorted indices based on Y values
-Y = XYZ(:,2);
-[~, sorted_indices] = sort(Y);
+%% Part 2: Sort & Grid
 
-% Reorder RAW and XYZ based on the sorted indices
-sorted.RAW = RAW(:, sorted_indices);
-sorted.XYZ = XYZ(sorted_indices, :);
-sorted.CAM = CAM(sorted_indices, :); 
-
-if sorted.XYZ(1,2) < params.yLims(1) || sorted.XYZ(end,2) > params.yLims(2)
-    iy1 = find(sorted.XYZ(:,2) >= params.yLims(1), 1, 'first');
-    iy2 = find(sorted.XYZ(:,2) <= params.yLims(2), 1, 'last');
-    sorted.XYZ = sorted.XYZ(iy1:iy2,:);
-    sorted.RAW = sorted.RAW(:,iy1:iy2);
+%create "list" of cameras. 
+for i = 1:max(double(CAM))
+    %For each camera, find extent of XY and RAW. Store variable
+    fieldNameI = sprintf('cam%1.0d', i);
+    camList.(fieldNameI).XY = XYZ(CAM == i, 1:2);
+    camList.(fieldNameI).RAW = RAW(:,CAM == i);
+    %temp vars for iteration of loop
+    tempXY = camList.(fieldNameI).XY;
+    tempRAW = camList.(fieldNameI).RAW;
+    
+    minY = min(tempXY(:,2));
+    maxY = max(tempXY(:,2));
+    
+    %Use Y limits of camera (and T on x-axis) to create grid 
+    yBounds = [minY : params.delY : maxY];
+    [tGrid, yGrid] = meshgrid(T, yBounds);
+    camList.(fieldNameI).tGrid = tGrid;
+    camList.(fieldNameI).yGrid = yGrid;
+    
+    %
+    vq = griddata(tempXY(:,2), T, double(tempRAW), yGrid, tGrid);
 end
 
-%clearvars XYZ RAW iy1 iy2 sorted_indices
-
-%% Part 3: "unik"
-% Remove Redundant x-y Locations
-% Find unique XY locations and average corresponding RAW data
-[~, uInd, ~] = unique(sorted.XYZ(:, 1:2), 'rows', 'stable');
-uXY = sorted.XYZ(uInd, 1:2);
-unik.CAM = sorted.CAM(uInd); 
-uRAW = nan(length(T), length(uXY));
-
-for iX = 1:length(uXY)
-    indices = ismember(sorted.XYZ(:, 1:2), uXY(iX, :), 'rows');
-    uRAW(:, iX) = mean(sorted.RAW(:, indices), 2);
-end
-
-unik.RAW = uRAW;
-unik.XY = uXY;
-
-%clearvars uInd uXY uRAW indices
-
-%% Part 4: "gridded"
-% Project Input Variables onto Regular Grids
-% Define the search domain
-% Create grid space to project RAW onto
-[tq, yq] = meshgrid(T, y);
-gridded.stack = griddata(unik.XY(:, 2), T, unik.RAW, yq, tq);
-gridded.xy(:,2) = y;
-gridded.xy(:,1) = params.searchX;
-
-% ** what i'm doing with CAM index here could be simplified
-F = scatteredInterpolant(XYZ(:,1), XYZ(:,2), double(CAM));
-gridded.CAM = round(F(gridded.xy(:,1), gridded.xy(:,2)));
-
-bad = isnan(gridded.stack);
-if sum(bad, 'all') > 0
-    gridded.stackOg = gridded.stack; % Save original as a different name
-    gridded.stack = fillmissing(gridded.stack, 'nearest'); % Fill NaNs with mean
-end
-
-%clearvars unik bad
-%% Part 3: Apply Radon
-% This section limits the velocity search bounds (vB) to + or - 
+%% Part 5: Apply Radon
+% This section limits the velocity search bounds (vBounds) to + or - 
 
 % This part could be optional -- sometimes the direction is known
 
@@ -113,15 +83,15 @@ dominant_angle = theta(max_col);
 % Interpret the dominant angle
 if dominant_angle > 95 && dominant_angle < 175
     disp('The foam is drifting north');
-    params.vB = [0.01 2];                                 % <--- *see note in "vidCurrentsParams.m"
+    params.vBounds = [0.01 2];                                 % <--- *see note in "vidCurrentsParams.m"
 elseif dominant_angle > 5 && dominant_angle < 85
     disp('The foam is drifting south');
-    params.vB = [-2 -0.01];
+    params.vBounds = [-2 -0.01];
 else
     disp('The dominant angle is within the excluded range.');
 end
 
-%% Run the main function 
+%% Part 6: Run the main function 
 
 % Initialize the video currents table
 vc150 = table();
@@ -159,49 +129,28 @@ for iCenter = 1:length(tileCenters)
     end
 
     % Run video-current-toolbox
-    vC = videoCurrentGen(gridded.stack(i1:i2,:)', params.mtime, gridded.xy(i1:i2,:), params.vB, params.fkB, params.Twin, params.Tstep, params.plotFlag);
+    vC = videoCurrentGen(gridded.stack(i1:i2,:)', params.mtime, gridded.xy(i1:i2,:), params.vBounds, params.fkBounds, params.tWindow, params.tStep, params.plotFlag);
     vC.ci1 = vC.ci(:, 1);
     vC.ci2 = vC.ci(:, 2);
     vC = rmfield(vC, "ci");
-    %vC.dTime = datetime(vC.t, 'ConvertFrom', 'datenum');
 
-    % Calculate mean and standard deviation of meanV
-    vC.mean_meanV = mean(vC.meanV);
-    vC.std_meanV = std(vC.meanV);
-
-    % Identify indices where meanV values are more than 3 standard deviations from the mean
-    vC.outlierIndices = abs(vC.meanV - vC.mean_meanV) > 2 * vC.std_meanV;
-
-    % List of all fields in the structure
-    %fields = fieldnames(vC);
-    % Remove data at these indices for all fields
-    %for i = 1:numel(fields)
-    %    vC.(fields{i})(outlierIndices) = [];
-    %end
-
-    % Save vC to the table
+    % Save vC to the table 
     vc150.vC(count) = vC;
     vc150.y(count) = centerY;
-    vc150.tileSize(count) = currentTileSize;
-
     count = count + 1;
 end
 
-%vc150 = sortrows(vc150, 2); % Sort by y-coordinate    %%TAKE OUT
 
 % clearvars -except vc175 gridded
-% Weighted meanV
+%% Part 7a: Filter & Combine Results 
+% New method of calculating single meanV from timeseries 
+
 for i = 1:height(vc150)
-    try
-        vc150.wV(i) = wmean(vc150.vC(i).meanV, 1./vc150.vC(i).stdV, 'omitnan');
-        vc150.snr(i) = wmean(vc150.vC(i).meanV, abs(vc150.vC(i).SNR), 'omitnan');
-        vc150.mV(i) = mean(vc150.vC(i).meanV, "omitnan"); 
-    catch
-    end
+    vc150.wV(i) = wmean(vc150.vC(i).meanV, 1./vc150.vC(i).stdV, 'omitnan');
 end
 
-% Post-Alg Filtering
-% From paragraph [47] in Chickadel et al., 2003
+%% Part 7b: Filter & Combine Results 
+% Old method, as described in paragraph [47] in Chickadel et al., 2003
 
 for i = 1:height(vc150)
     % Criteria 1:

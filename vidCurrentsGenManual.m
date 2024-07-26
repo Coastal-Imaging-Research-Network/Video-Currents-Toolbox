@@ -21,76 +21,44 @@
 %% Part 1: Set Up
 
 % params definitions moved to a new file 
+paramsFile = ("vidCurrentsParams");
+eval(paramsFile);
 
 % fileSearchPath is the folder within which the function vBarRawFile will
 % search for the "raw" data file 
 fileSearchPath = ("C:\Users\13emo3\OneDrive - Queen's University\PhD\Chapter 4 vBar\Chapter 4 Data\FTP Downloads");
 
-[T, RAW, XYZ, CAM] = loadVbarRawFile(fileSearchPath, params.searchDate, params.searchX);
+[T, RAW, XYZ] = loadVbarRawFile(fileSearchPath, params.searchDate, params.searchX);
 
 % time is loaded as epoch, so convert it to datetime for plotting
 % interpretation
 mtime = (T/(3600*24)+datenum(1970,1,1))';
 dTime = datetime(mtime, 'ConvertFrom', 'datenum');
 
-%% Part 2: "sorted"
-% Sort data & discard unneeded data
-% Get the sorted indices based on Y values
-Y = XYZ(:,2);
-[~, sorted_indices] = sort(Y);
+%% Part 2: Sort & Grid
 
-% Reorder RAW and XYZ based on the sorted indices
-sorted.RAW = RAW(:, sorted_indices);
-sorted.XYZ = XYZ(sorted_indices, :);
-sorted.CAM = CAM(sorted_indices, :); 
-
-if sorted.XYZ(1,2) < params.yLims(1) || sorted.XYZ(end,2) > params.yLims(2)
-    iy1 = find(sorted.XYZ(:,2) >= params.yLims(1), 1, 'first');
-    iy2 = find(sorted.XYZ(:,2) <= params.yLims(2), 1, 'last');
-    sorted.XYZ = sorted.XYZ(iy1:iy2,:);
-    sorted.RAW = sorted.RAW(:,iy1:iy2);
+%create "list" of cameras. 
+for i = 1:max(double(CAM))
+    %For each camera, find extent of XY and RAW. Store variable
+    fieldNameI = sprintf('cam%1.0d', i);
+    camList.(fieldNameI).XY = XYZ(CAM == i, 1:2);
+    camList.(fieldNameI).RAW = RAW(:,CAM == i);
+    %temp vars for iteration of loop
+    tempXY = camList.(fieldNameI).XY;
+    tempRAW = camList.(fieldNameI).RAW;
+    
+    minY = min(tempXY(:,2));
+    maxY = max(tempXY(:,2));
+    
+    %Use Y limits of camera (and T on x-axis) to create grid 
+    yBounds = [minY : params.delY : maxY];
+    [tGrid, yGrid] = meshgrid(T, yBounds);
+    camList.(fieldNameI).tGrid = tGrid;
+    camList.(fieldNameI).yGrid = yGrid;
+    
+    %create evenly-spaced, interpolated grid for this camera
+    interpRAW = griddata(tempXY(:,2), T, double(tempRAW), yGrid, tGrid);
 end
-
-%clearvars XYZ RAW iy1 iy2 sorted_indices
-
-%% Part 3: "unik"
-% Remove Redundant x-y Locations
-% Find unique XY locations and average corresponding RAW data
-[~, uInd, ~] = unique(sorted.XYZ(:, 1:2), 'rows', 'stable');
-uXY = sorted.XYZ(uInd, 1:2);
-unik.CAM = sorted.CAM(uInd); 
-uRAW = nan(length(T), length(uXY));
-
-for iX = 1:length(uXY)
-    indices = ismember(sorted.XYZ(:, 1:2), uXY(iX, :), 'rows');
-    uRAW(:, iX) = mean(sorted.RAW(:, indices), 2);
-end
-
-unik.RAW = uRAW;
-unik.XY = uXY;
-
-%clearvars uInd uXY uRAW indices
-
-%% Part 4: "gridded"
-% Project Input Variables onto Regular Grids
-% Define the search domain
-% Create grid space to project RAW onto
-[tq, yq] = meshgrid(T, y);
-gridded.stack = griddata(unik.XY(:, 2), T, unik.RAW, yq, tq);
-gridded.xy(:,2) = y;
-gridded.xy(:,1) = params.searchX;
-
-% ** what i'm doing with CAM index here could be simplified
-F = scatteredInterpolant(XYZ(:,1), XYZ(:,2), double(CAM));
-gridded.CAM = round(F(gridded.xy(:,1), gridded.xy(:,2)));
-
-bad = isnan(gridded.stack);
-if sum(bad, 'all') > 0
-    gridded.stackOg = gridded.stack; % Save original as a different name
-    gridded.stack = fillmissing(gridded.stack, 'nearest'); % Fill NaNs with mean
-end
-
-% clearvars unik bad
 
 %% Part 5: Apply Radon
 % This section limits the velocity search bounds (vBounds) to + or - 
