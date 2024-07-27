@@ -1,4 +1,4 @@
-%% Updated version of "vidCurrentsGenManual" 
+%% Updated version of "vidCurrentsGenManual"
 %   where the original function is defined:
 % videoCurrentOut = videoCurrentGen(stack, time, xy, vB, fkB, Twin, Tstep, plotFlag);
 %   & the inputs are as follows:
@@ -20,12 +20,12 @@
 
 %% Part 1: Set Up
 
-% params definitions moved to a new file 
+% params definitions moved to a new file
 paramsFile = ("vidCurrentsParams");
 eval(paramsFile);
 
 % fileSearchPath is the folder within which the function vBarRawFile will
-% search for the "raw" data file 
+% search for the "raw" data file
 fileSearchPath = ("C:\Users\13emo3\OneDrive - Queen's University\PhD\Chapter 4 vBar\Chapter 4 Data\FTP Downloads");
 
 [T, RAW, XYZ] = loadVbarRawFile(fileSearchPath, params.searchDate, params.searchX);
@@ -37,91 +37,77 @@ dTime = datetime(mtime, 'ConvertFrom', 'datenum');
 
 %% Part 2: Sort & Grid
 
-%create "list" of cameras. 
+vidCurrTable = table(); 
+
+%create "list" of cameras.
 for i = 1:max(double(CAM))
     %For each camera, find extent of XY and RAW. Store variable
     fieldNameI = sprintf('cam%1.0d', i);
     camList.(fieldNameI).XY = XYZ(CAM == i, 1:2);
     camList.(fieldNameI).RAW = RAW(:,CAM == i);
-    %temp vars for iteration of loop
+    % temp vars for iteration of loop
     tempXY = camList.(fieldNameI).XY;
     tempRAW = camList.(fieldNameI).RAW;
+
+    minY = round(min(tempXY(:,2)));
+    maxY = round(max(tempXY(:,2)));
+
+    % % Use Y limits of camera (and T on x-axis) to create grid
+    % yBounds = minY : params.delY : maxY;
+    % [tGrid, yGrid] = meshgrid(T, yBounds);
+    % 
+    % % Define a new variable called "inputData" which stores the gridded
+    % % data that will be used as input for "videoCurrentGen"
+    % inputDat.(fieldNameI).tGrid = tGrid;
+    % inputDat.(fieldNameI).yGrid = yGrid;
+    % 
+    % % Project 'RAW' data for this camera onto the grid
+    % inputDat.(fieldNameI).rawGrid = griddata(tempXY(:,2), T, double(tempRAW), yGrid, tGrid, 'natural');
     
-    minY = min(tempXY(:,2));
-    maxY = max(tempXY(:,2));
+    % Define the center points of the analysis windows
+    inputDat.yCentres = minY+(params.tileSize/2):params.tileSize:(maxY-params.tileSize/2); 
+
     
-    %Use Y limits of camera (and T on x-axis) to create grid 
-    yBounds = [minY : params.delY : maxY];
-    [tGrid, yGrid] = meshgrid(T, yBounds);
-    camList.(fieldNameI).tGrid = tGrid;
-    camList.(fieldNameI).yGrid = yGrid;
-    
-    %create evenly-spaced, interpolated grid for this camera
-    interpRAW = griddata(tempXY(:,2), T, double(tempRAW), yGrid, tGrid);
+    % % Apply Radon to define the velocity search bounds (vBounds) to + or -
+    % theta = 0:179;  % the range of angles we're considering
+    % % Note that given the data configuration, theta represents the angle
+    % % *from which* energy is coming
+    % 
+    % % if vBounds are undefined (in params file),
+    % if isempty(params.vBounds)
+    %     % Perform Radon on all angles between 0 to 180 (theta),
+    %     [R, xp] = radon(interpRAW, theta);
+    % 
+    %     % Exclude energy from unwanted angle ranges (where ~90 deg = shore
+    %     % normal (stationary objects) & ~180 deg = shore parallel (inf speed)
+    %     excluded_angles = (theta >= 85 & theta <= 95) | (theta >= 175 | theta <= 5);
+    %     R(:, excluded_angles) = 0;
+    % 
+    %     % The angle with the maximum value from the Radon transform is
+    %     % associated with the direction of the foam drift
+    %     [max_val, max_idx] = max(R(:));
+    %     [max_row, max_col] = ind2sub(size(R), max_idx);
+    %     dominant_angle = theta(max_col);
+    % 
+    %     % Interpret the dominant angle:
+    %     if dominant_angle > 95 && dominant_angle < 175
+    %         disp('The foam is drifting north');
+    %         params.vBounds = [0.01 2.5];                                 % <--- *see note in "vidCurrentsParams.m"
+    %     elseif adominant_angle > 5 && dominant_angle < 85
+    %         disp('The foam is drifting south');
+    %         params.vBounds = [-2.5 -0.01];
+    %     else
+    %         disp('The dominant angle is within the excluded range.');
+    %     end
 end
 
-%% Part 5: Apply Radon
-% This section limits the velocity search bounds (vBounds) to + or - 
 
-% This part could be optional -- sometimes the direction is known
+%% Part 2: Run the main function 
 
-% Define the range of angles for the Radon transform
-theta = 0:179;
-
-% Perform the Radon transform
-[R, xp] = radon(gridded.stack, theta);
-
-% Exclude unwanted angle ranges
-excluded_angles = (theta >= 85 & theta <= 95) | (theta >= 175 | theta <= 5);
-R(:, excluded_angles) = 0;
-
-% Find the angle with the maximum value in the Radon transform
-[max_val, max_idx] = max(R(:));
-[max_row, max_col] = ind2sub(size(R), max_idx);
-dominant_angle = theta(max_col);
-
-% Interpret the dominant angle
-if dominant_angle > 95 && dominant_angle < 175
-    disp('The foam is drifting north');
-    params.vBounds = [0.01 2];                                 % <--- *see note in "vidCurrentsParams.m"
-elseif dominant_angle > 5 && dominant_angle < 85
-    disp('The foam is drifting south');
-    params.vBounds = [-2 -0.01];
-else
-    disp('The dominant angle is within the excluded range.');
-end
-
-%% Part 6: Run the main function 
-
-% Initialize the video currents table
+% Step 1: Initialize the table with y-values and cam-values 
 vc150 = table();
-count = 1;
-
-% I'm not certain on how to do this here, but I'm trying to identify the
-% locations at which the camera changes so that the defined tiles don't
-% include camera seams 
-
-% Calculate the difference between adjacent elements
-diff_CAM = diff(gridded.CAM);
-
-% Find the indices where the difference is non-zero
-change_indices = find(diff_CAM ~= 0) + 1;
-
-% Maybe there should be one "tileCenters" for each camera? 
-tileCenters = y(1):10:y(end); % Define tile centers with a step of 10 meters
 
 for iCenter = 1:length(tileCenters)
-    % the below commented out stuff needs to be re-written (with the cam
-    % lims) 
-    % 
-    % % Calculate the start and end indices for the current tile
-    % centerY = tileCenters(iCenter);
-    % startY = centerY - currentTileSize / 2;
-    % endY = centerY + currentTileSize / 2;
-    % 
-    % % Find the corresponding indices in the y array
-    % i1 = find(y >= startY, 1);
-    % i2 = find(y <= endY, 1, 'last');
 
     % Ensure indices are within y-search bounds
     if isempty(i1) || isempty(i2)
@@ -134,7 +120,7 @@ for iCenter = 1:length(tileCenters)
     vC.ci2 = vC.ci(:, 2);
     vC = rmfield(vC, "ci");
 
-    % Save vC to the table 
+    % Save vC to the table
     vc150.vC(count) = vC;
     vc150.y(count) = centerY;
     count = count + 1;
@@ -142,14 +128,14 @@ end
 
 
 % clearvars -except vc175 gridded
-%% Part 7a: Filter & Combine Results 
-% New method of calculating single meanV from timeseries 
+%% Part 7a: Filter & Combine Results
+% New method of calculating single meanV from timeseries
 
 for i = 1:height(vc150)
     vc150.wV(i) = wmean(vc150.vC(i).meanV, 1./vc150.vC(i).stdV, 'omitnan');
 end
 
-%% Part 7b: Filter & Combine Results 
+%% Part 7b: Filter & Combine Results
 % Old method, as described in paragraph [47] in Chickadel et al., 2003
 
 for i = 1:height(vc150)
