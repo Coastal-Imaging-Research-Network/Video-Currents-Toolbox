@@ -26,9 +26,9 @@ eval(paramsFile);
 
 % fileSearchPath is the folder within which the function vBarRawFile will
 % search for the "raw" data file
-fileSearchPath = ("C:\Users\13emo3\OneDrive - Queen's University\PhD\Chapter 4 vBar\Chapter 4 Data\FTP Downloads");
+fileSearchPath = ("C:\Users\eswanson\OneDrive - DOI\Documents\GitHub\Video-Currents-Toolbox");
 
-[T, RAW, XYZ] = loadVbarRawFile(fileSearchPath, params.searchDate, params.searchX);
+[T, RAW, XYZ, CAM] = loadVbarRawFile(fileSearchPath, params.searchDate, params.searchX);
 
 % time is loaded as epoch, so convert it to datetime for plotting
 % interpretation

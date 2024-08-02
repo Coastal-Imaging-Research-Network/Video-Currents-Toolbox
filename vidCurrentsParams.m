@@ -3,12 +3,12 @@
 % Define input parameters <-- Make this a separate file 
 %       (This is currently all in FRF local coordinates)
 params.yLims = [0 1100];                                                     % Maximum & minimum y-values you're looking at
-params.searchX = 150;                                                        % x-transect
+params.searchX = 125;                                                        % x-transect
 params.delY = 0.2;                                                           % ground pixel spacing in y <-- ** RELEVANT FOR VB
 y = params.yLims(1):params.delY:params.yLims(2);                             % define the y-grid
 params.yCam = 565;                                                           % y-location of the camera (m)
 params.tileSize = 20; % m 
-params.searchDate = datetime(2017, 9, 12, 16, 00, 00);                       % Useful for output figures & search/ load function 
+params.searchDate = datetime(2017, 10, 01, 15, 59, 00);                       % Useful for output figures & search/ load function 
 
                     % *** NEW VARIABLE -- image sampling frequency ***
                     %       So that params.tWindow * params.fSample = number of points in the window
