@@ -20,6 +20,7 @@ params.tWindow = 64; % s                                                        
 params.tStep = 32;   % s                                                        % Temporal resolution output (i.e. 32 = 1 estimate every 32 seconds) 
 
 params.vBounds = [];  % m/s                                                 % if empty, vBounds are defined by the Radon step                                                
+params.radonCamNum = 1;                                                     % select camera to use y bounds for radon filter
 params.fkBounds = [];                                                       % [fmin fmax kmin kmax], vector of search frequency and wavenumber windows
 
 params.plotFlag = 0;

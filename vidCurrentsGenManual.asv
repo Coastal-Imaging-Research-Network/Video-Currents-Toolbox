@@ -68,19 +68,18 @@ for i = 1:max(double(CAM))
     inputDat.(fieldNameI).yCentres = minY+(params.tileSize/2):params.tileSize:(maxY-params.tileSize/2); 
 end
 
-%% Apply Radon to define the velocity search bounds (vBounds) to + or -
+% Apply Radon to define the velocity search bounds (vBounds) to + or -
 theta = 0:179;  % the range of angles we're considering
 % Note that given the data configuration, theta represents the angle
 % *from which* energy is coming
 
+%select y bounds for radon to test
+cam
+
 % if vBounds are undefined (in params file),
 if isempty(params.vBounds)
-    
-    %select y bounds for radon to test
-    radonCam = sprintf('cam%1.0d', params.radonCamNum);
-    
     % Perform Radon on all angles between 0 to 180 (theta),
-    [R, xp] = radon(inputDat.(radonCam).rawGrid, theta);
+    [R, xp] = radon(interpRAW, theta);
 
     % Exclude energy from unwanted angle ranges (where ~90 deg = shore
     % normal (stationary objects) & ~180 deg = shore parallel (inf speed)
