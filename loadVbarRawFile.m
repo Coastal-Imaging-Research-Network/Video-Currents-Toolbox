@@ -57,7 +57,7 @@ function [T, RAW, XYZ, CAM] = loadVbarRawFile(fileSearchPath, searchDate, search
             RAW = data.RAW;
             CAM = data.CAM;
             % Process the variables as needed
-            disp('Variables loaded: XYZ, T, RAW');
+            disp('Variables loaded: XYZ, T, RAW, CAM');
         else
             disp('One or more variables not found in the file.');
         end

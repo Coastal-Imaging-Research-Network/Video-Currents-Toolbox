@@ -35,6 +35,8 @@ fileSearchPath = ("C:\Users\eswanson\OneDrive - DOI\Documents\GitHub\Video-Curre
 mtime = (T/(3600*24)+datenum(1970,1,1))';
 dTime = datetime(mtime, 'ConvertFrom', 'datenum');
 
+params.numCams = max(CAM, [], 'all'); 
+
 %% Part 2: Sort & Grid
 
 vidCurrTable = table(); 
@@ -68,18 +70,19 @@ for i = 1:max(double(CAM))
     inputDat.(fieldNameI).yCentres = minY+(params.tileSize/2):params.tileSize:(maxY-params.tileSize/2); 
 end
 
-% Apply Radon to define the velocity search bounds (vBounds) to + or -
+%% Apply Radon to define the velocity search bounds (vBounds) to + or -
 theta = 0:179;  % the range of angles we're considering
 % Note that given the data configuration, theta represents the angle
 % *from which* energy is coming
 
-%select y bounds for radon to test
-cam
-
 % if vBounds are undefined (in params file),
 if isempty(params.vBounds)
+    
+    %select y bounds for radon to test
+    radonCam = sprintf('cam%1.0d', params.radonCamNum);
+    
     % Perform Radon on all angles between 0 to 180 (theta),
-    [R, xp] = radon(interpRAW, theta);
+    [R, xp] = radon(inputDat.(radonCam).rawGrid, theta);
 
     % Exclude energy from unwanted angle ranges (where ~90 deg = shore
     % normal (stationary objects) & ~180 deg = shore parallel (inf speed)
@@ -94,22 +97,28 @@ if isempty(params.vBounds)
 
     % Interpret the dominant angle:
     if dominant_angle > 95 && dominant_angle < 175
-        disp('The foam is drifting north');
-        params.vBounds = [0.01 2.5];                                 % <--- *see note in "vidCurrentsParams.m"
-    elseif adominant_angle > 5 && dominant_angle < 85
         disp('The foam is drifting south');
-        params.vBounds = [-2.5 -0.01];
+        params.vBounds = [-2.5 -0.01];                                 % <--- *see note in "vidCurrentsParams.m"
+    elseif dominant_angle > 5 && dominant_angle < 85
+        disp('The foam is drifting north');
+        params.vBounds = [0.01 2.5];
     else
         disp('The dominant angle is within the excluded range.');
     end
 end
 
+% Figure Check for Radon 
+figure(); 
+pcolor(inputDat.cam1.tGrid, inputDat.cam1.yGrid, inputDat.cam1.rawGrid);
+shading flat; colormap(gray); 
+xlabel('Time'); ylabel('y-position (m)'); 
+
 %% Part 2: Run the main function 
 
 % Step 1: Initialize the table with y-values and cam-values 
-vc150 = table();
+vcTable = table();
 
-for iCenter = 1:length(tileCenters)
+for  = 1:length(tileCenters)
 
     % Ensure indices are within y-search bounds
     if isempty(i1) || isempty(i2)
@@ -123,8 +132,8 @@ for iCenter = 1:length(tileCenters)
     vC = rmfield(vC, "ci");
 
     % Save vC to the table
-    vc150.vC(count) = vC;
-    vc150.y(count) = centerY;
+    vcTable.vC(count) = vC;
+    vcTable.y(count) = centerY;
     count = count + 1;
 end
 
@@ -133,32 +142,32 @@ end
 %% Part 7a: Filter & Combine Results
 % New method of calculating single meanV from timeseries
 
-for i = 1:height(vc150)
-    vc150.wV(i) = wmean(vc150.vC(i).meanV, 1./vc150.vC(i).stdV, 'omitnan');
+for i = 1:height(vcTable)
+    vcTable.wV(i) = wmean(vcTable.vC(i).meanV, 1./vcTable.vC(i).stdV, 'omitnan');
 end
 
 %% Part 7b: Filter & Combine Results
 % Old method, as described in paragraph [47] in Chickadel et al., 2003
 
-for i = 1:height(vc150)
+for i = 1:height(vcTable)
     % Criteria 1:
     % Significance of fit from the model skill must be > 90%
-    iPass1 = find(vc150.vC(i).prob >= 0.9);
+    iPass1 = find(vcTable.vC(i).prob >= 0.9);
     pass1{i} = iPass1;
     totPass1(i) = numel(iPass1);
 
     % Criteria 2:
     % 95ci range must be <= 0.2 m/s
-    iPass2 = find(vc150.vC(i).cispan <= 0.2);
+    iPass2 = find(vcTable.vC(i).cispan <= 0.2);
     pass2{i} = iPass2;
     totPass2(i) = numel(iPass2);
 
     % Criteria 3:
     % I_range must be > 40
-    iPass3 = find(vc150.vC(i).QCspan > 40);
+    iPass3 = find(vcTable.vC(i).QCspan > 40);
     pass3{i} = iPass3;
     totPass3(i) = numel(iPass3);
     allPass{i} = intersect(intersect(iPass1, iPass2), iPass3);
 
-    vc150.mV_c03(i) = mean(vc150.vC(i).meanV(allPass{i}));
+    vcTable.mV_c03(i) = mean(vcTable.vC(i).meanV(allPass{i}));
 end

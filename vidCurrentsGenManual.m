@@ -35,16 +35,18 @@ fileSearchPath = ("C:\Users\eswanson\OneDrive - DOI\Documents\GitHub\Video-Curre
 mtime = (T/(3600*24)+datenum(1970,1,1))';
 dTime = datetime(mtime, 'ConvertFrom', 'datenum');
 
+params.numCams = max(CAM, [], 'all'); 
+
 %% Part 2: Sort & Grid
 
 vidCurrTable = table(); 
 
 %create "list" of cameras.
-for i = 1:max(double(CAM))
+for j = 1:max(double(CAM))
     %For each camera, find extent of XY and RAW. Store variable
-    fieldNameI = sprintf('cam%1.0d', i);
-    camList.(fieldNameI).XY = XYZ(CAM == i, 1:2);
-    camList.(fieldNameI).RAW = RAW(:,CAM == i);
+    fieldNameI = sprintf('cam%1.0d', j);
+    camList.(fieldNameI).XY = XYZ(CAM == j, 1:2);
+    camList.(fieldNameI).RAW = RAW(:,CAM == j);
     % temp vars for iteration of loop
     tempXY = camList.(fieldNameI).XY;
     tempRAW = camList.(fieldNameI).RAW;
@@ -95,22 +97,30 @@ if isempty(params.vBounds)
 
     % Interpret the dominant angle:
     if dominant_angle > 95 && dominant_angle < 175
-        disp('The foam is drifting north');
-        params.vBounds = [0.01 2.5];                                 % <--- *see note in "vidCurrentsParams.m"
-    elseif adominant_angle > 5 && dominant_angle < 85
         disp('The foam is drifting south');
-        params.vBounds = [-2.5 -0.01];
+        params.vBounds = [-2.5 -0.01];                                 % <--- *see note in "vidCurrentsParams.m"
+    elseif dominant_angle > 5 && dominant_angle < 85
+        disp('The foam is drifting north');
+        params.vBounds = [0.01 2.5];
     else
         disp('The dominant angle is within the excluded range.');
     end
 end
 
+% Figure Check for Radon 
+figure(); 
+pcolor(inputDat.cam1.tGrid, inputDat.cam1.yGrid, inputDat.cam1.rawGrid);
+shading flat; colormap(gray); 
+xlabel('Time'); ylabel('y-position (m)'); 
+
 %% Part 2: Run the main function 
 
 % Step 1: Initialize the table with y-values and cam-values 
-vc150 = table();
+vcTable = table();
 
-for iCenter = 1:length(tileCenters)
+for j = 1:params.numCams
+
+    yMidTile = inputDat.(fieldNameI).yCentres; 
 
     % Ensure indices are within y-search bounds
     if isempty(i1) || isempty(i2)
@@ -124,8 +134,8 @@ for iCenter = 1:length(tileCenters)
     vC = rmfield(vC, "ci");
 
     % Save vC to the table
-    vc150.vC(count) = vC;
-    vc150.y(count) = centerY;
+    vcTable.vC(count) = vC;
+    vcTable.y(count) = centerY;
     count = count + 1;
 end
 
@@ -134,32 +144,32 @@ end
 %% Part 7a: Filter & Combine Results
 % New method of calculating single meanV from timeseries
 
-for i = 1:height(vc150)
-    vc150.wV(i) = wmean(vc150.vC(i).meanV, 1./vc150.vC(i).stdV, 'omitnan');
+for j = 1:height(vcTable)
+    vcTable.wV(j) = wmean(vcTable.vC(j).meanV, 1./vcTable.vC(j).stdV, 'omitnan');
 end
 
 %% Part 7b: Filter & Combine Results
 % Old method, as described in paragraph [47] in Chickadel et al., 2003
 
-for i = 1:height(vc150)
+for j = 1:height(vcTable)
     % Criteria 1:
     % Significance of fit from the model skill must be > 90%
-    iPass1 = find(vc150.vC(i).prob >= 0.9);
-    pass1{i} = iPass1;
-    totPass1(i) = numel(iPass1);
+    iPass1 = find(vcTable.vC(j).prob >= 0.9);
+    pass1{j} = iPass1;
+    totPass1(j) = numel(iPass1);
 
     % Criteria 2:
     % 95ci range must be <= 0.2 m/s
-    iPass2 = find(vc150.vC(i).cispan <= 0.2);
-    pass2{i} = iPass2;
-    totPass2(i) = numel(iPass2);
+    iPass2 = find(vcTable.vC(j).cispan <= 0.2);
+    pass2{j} = iPass2;
+    totPass2(j) = numel(iPass2);
 
     % Criteria 3:
     % I_range must be > 40
-    iPass3 = find(vc150.vC(i).QCspan > 40);
-    pass3{i} = iPass3;
-    totPass3(i) = numel(iPass3);
-    allPass{i} = intersect(intersect(iPass1, iPass2), iPass3);
+    iPass3 = find(vcTable.vC(j).QCspan > 40);
+    pass3{j} = iPass3;
+    totPass3(j) = numel(iPass3);
+    allPass{j} = intersect(intersect(iPass1, iPass2), iPass3);
 
-    vc150.mV_c03(i) = mean(vc150.vC(i).meanV(allPass{i}));
+    vcTable.mV_c03(j) = mean(vcTable.vC(j).meanV(allPass{j}));
 end
