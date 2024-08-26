@@ -26,20 +26,18 @@ eval(paramsFile);
 
 % fileSearchPath is the folder within which the function vBarRawFile will
 % search for the "raw" data file
-fileSearchPath = ("C:\Users\eswanson\OneDrive - DOI\Documents\GitHub\Video-Currents-Toolbox");
+fileSearchPath = ("D:\Elora PhD\GitHub\Video-Currents-Toolbox");
 
 [T, RAW, XYZ, CAM] = loadVbarRawFile(fileSearchPath, params.searchDate, params.searchX);
 
 % time is loaded as epoch, so convert it to datetime for plotting
 % interpretation
-mtime = (T/(3600*24)+datenum(1970,1,1))';
-dTime = datetime(mtime, 'ConvertFrom', 'datenum');
+params.mtime = (T/(3600*24)+datenum(1970,1,1))';
+params.dTime = datetime(params.mtime, 'ConvertFrom', 'datenum');
 
-params.numCams = max(CAM, [], 'all'); 
+params.numCams = max(CAM, [], 'all');
 
 %% Part 2: Sort & Grid
-
-vidCurrTable = table(); 
 
 %create "list" of cameras.
 for j = 1:max(double(CAM))
@@ -57,17 +55,17 @@ for j = 1:max(double(CAM))
     % Use Y limits of camera (and T on x-axis) to create grid
     yBounds = minY : params.delY : maxY;
     [tGrid, yGrid] = meshgrid(T, yBounds);
-    
+
     % Define a new variable called "inputData" which stores the gridded
     % data that will be used as input for "videoCurrentGen"
     inputDat.(fieldNameI).tGrid = tGrid;
     inputDat.(fieldNameI).yGrid = yGrid;
-    
+
     % Project 'RAW' data for this camera onto the grid
     inputDat.(fieldNameI).rawGrid = griddata(tempXY(:,2), T, double(tempRAW), yGrid, tGrid, 'natural');
-    
+
     % Define the center points of the analysis windows
-    inputDat.(fieldNameI).yCentres = minY+(params.tileSize/2):params.tileSize:(maxY-params.tileSize/2); 
+    inputDat.(fieldNameI).yCentres = minY+(params.tileSize/2):params.tileSize:(maxY-params.tileSize/2);
 end
 
 %% Apply Radon to define the velocity search bounds (vBounds) to + or -
@@ -77,10 +75,10 @@ theta = 0:179;  % the range of angles we're considering
 
 % if vBounds are undefined (in params file),
 if isempty(params.vBounds)
-    
+
     %select y bounds for radon to test
     radonCam = sprintf('cam%1.0d', params.radonCamNum);
-    
+
     % Perform Radon on all angles between 0 to 180 (theta),
     [R, xp] = radon(inputDat.(radonCam).rawGrid, theta);
 
@@ -107,48 +105,53 @@ if isempty(params.vBounds)
     end
 end
 
-% Figure Check for Radon 
-figure(); 
+% Figure Check for Radon
+figure();
 pcolor(inputDat.cam1.tGrid, inputDat.cam1.yGrid, inputDat.cam1.rawGrid);
-shading flat; colormap(gray); 
-xlabel('Time'); ylabel('y-position (m)'); 
+shading flat; colormap(gray);
+xlabel('Time'); ylabel('y-position (m)');
 
-%% Part 2: Run the main function 
+%% Part 2: Run the main function
 
-% Step 1: Initialize the table with y-values and cam-values 
+% Step 1: Initialize the table with y-values and cam-values
 vcTable = table();
-
+count = 1; 
 for j = 1:params.numCams
+    fieldNameJ = sprintf('cam%1.0d', j);
+    for k = 1:length(inputDat.(fieldNameJ).yCentres)
+        y = inputDat.(fieldNameJ).yGrid(:,1); 
+        y1 = inputDat.(fieldNameJ).yCentres(k) - params.tileSize/2;    % start point 
+        y2 = inputDat.(fieldNameJ).yCentres(k) + params.tileSize/2;    % end point
+        i1 = find(y == y1, 1, 'first'); 
+        i2 = find(y == y2, 1, 'first'); 
 
-    yMidTile = inputDat.(fieldNameI).yCentres; 
+        % Ensure indices are within y-search bounds
+        if isempty(i1) || isempty(i2)
+            continue;
+        end
 
-    % Ensure indices are within y-search bounds
-    if isempty(i1) || isempty(i2)
-        continue;
+        % Run video-current-toolbox
+        vC = videoCurrentGen(inputDat.(fieldNameJ).rawGrid(i1:i2,:)', params.mtime, inputDat.(fieldNameJ).yGrid(i1:i2,:), params.vBounds, params.fkBounds, params.tWindow, params.tStep, params.plotFlag);
+        vC.ci1 = vC.ci(:, 1);
+        vC.ci2 = vC.ci(:, 2);
+        vC = rmfield(vC, "ci");
+
+        % Save vC to the table
+        vcTable.y(count) = inputDat.(fieldNameJ).yCentres(k);       % midpoint
+        vcTable.vC(count) = vC;
+        count = count + 1;
     end
-
-    % Run video-current-toolbox
-    vC = videoCurrentGen(gridded.stack(i1:i2,:)', params.mtime, gridded.xy(i1:i2,:), params.vBounds, params.fkBounds, params.tWindow, params.tStep, params.plotFlag);
-    vC.ci1 = vC.ci(:, 1);
-    vC.ci2 = vC.ci(:, 2);
-    vC = rmfield(vC, "ci");
-
-    % Save vC to the table
-    vcTable.vC(count) = vC;
-    vcTable.y(count) = centerY;
-    count = count + 1;
 end
 
 
-% clearvars -except vc175 gridded
-%% Part 7a: Filter & Combine Results
+%% Part 3a: Filter & Combine Results
 % New method of calculating single meanV from timeseries
 
 for j = 1:height(vcTable)
-    vcTable.wV(j) = wmean(vcTable.vC(j).meanV, 1./vcTable.vC(j).stdV, 'omitnan');
+    vcTable.wV(j) = wmean(vcTable.vC(j).meanV, vcTable.vC(j).stdV, 'omitnan');
 end
 
-%% Part 7b: Filter & Combine Results
+%% Part 3b: Filter & Combine Results
 % Old method, as described in paragraph [47] in Chickadel et al., 2003
 
 for j = 1:height(vcTable)
