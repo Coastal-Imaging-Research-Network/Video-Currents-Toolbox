@@ -39,7 +39,7 @@ params.numCams = max(CAM, [], 'all');
 
 %% Part 2: Sort & Grid
 
-%create "list" of cameras.
+% create "list" of cameras.
 for j = 1:max(double(CAM))
     %For each camera, find extent of XY and RAW. Store variable
     fieldNameI = sprintf('cam%1.0d', j);
@@ -120,8 +120,10 @@ for j = 1:params.numCams
     fieldNameJ = sprintf('cam%1.0d', j);
     for k = 1:length(inputDat.(fieldNameJ).yCentres)
         y = inputDat.(fieldNameJ).yGrid(:,1); 
+        
         y1 = inputDat.(fieldNameJ).yCentres(k) - params.tileSize/2;    % start point 
         y2 = inputDat.(fieldNameJ).yCentres(k) + params.tileSize/2;    % end point
+        
         i1 = find(y == y1, 1, 'first'); 
         i2 = find(y == y2, 1, 'first'); 
 
@@ -143,12 +145,13 @@ for j = 1:params.numCams
     end
 end
 
+vcTable = sortrows(vcTable, 1);
 
 %% Part 3a: Filter & Combine Results
 % New method of calculating single meanV from timeseries
 
 for j = 1:height(vcTable)
-    vcTable.wV(j) = wmean(vcTable.vC(j).meanV, vcTable.vC(j).stdV, 'omitnan');
+    vcTable.wV(j) = wmean(vcTable.vC(j).meanV, 1./vcTable.vC(j).stdV, 'omitnan');
 end
 
 %% Part 3b: Filter & Combine Results

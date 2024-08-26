@@ -167,14 +167,49 @@ for window = 0:(Nb-1)
         dataStruct.SNR(j) = beta(1)/beta(4); % model guess at signal-to-noise
         dataStruct.beta(:,j) = beta; 
         dataStruct.t(j) = mean(time(cind));
-        % if plotFlag == 1
-        %     % Export data to a .mat file
-        %     outputFolder = '/Users/eloraoades/Library/CloudStorage/OneDrive-Queen''sUniversity/PhD/Chapter 3 vBar/Chapter 3 Data/figCheck x175 091817';
-        %     yax1 = y(1:end-1);
-        %     tax1 = dt:dt:size(block,1)*dt;
-        %     dataToSave = {yax1, tax1, f, k, v, jv, fkny, S_fk, S_v, S_vk, fitted, dataStruct, block, xy};  % Replace yourDataVariable with the variable you want to save
-        %     save(fullfile(outputFolder, ['figCheck_' num2str(j) '.mat']), 'dataToSave');  
-        % end
+
+        % Note to revisit
+         if plotFlag
+            figure
+            subplot(221)
+            imagesc(y,1:size(block,1)*dt,block)
+            hold on
+            ylabel('time (s)','fontsi',14)
+            xlabel('y position (m)','fontsi',14)
+            %plot([min(y) ],[])
+            subplot(222)
+            imagesc(f,k,log10(abs(S')))
+            shading flat
+            xlabel('frequency (Hz)','fontsi',14),ylabel('wavenumber (1/m)','fontsi',14)
+            axis xy
+            axis([-abs(fkny(1)) abs(fkny(1)) 0 fkny(2)])
+            grid on
+            colorbar
+            subplot(223)
+            imagesc(v,k,log10(abs(Sv')))
+            shading flat
+            colorbar
+            xlabel('velocity (m/s)','fontsi',14),ylabel('wavenumber (1/m)','fontsi',14)
+            axis xy
+            axis([min(jv) max(jv) 0 fkny(2)])
+            grid on
+            subplot(224)
+            plot(v,V,'linew',1) %semilogy(v,V,'linew',1)
+            xlabel('velocity (m/s)','fontsi',14),ylabel('wavenumber (1/m)','fontsi',14)
+            hold on
+            plot(v(gind),fitted,'r--','linew',2)
+            plot([0 0]+dataStruct.meanV(j),[0 1],'k','linew',2)
+            plot([-1 1;-1 1]*dataStruct.stdV(j)+dataStruct.meanV(j),[0 0;1 1],'--k','linew',1)
+            title(dataStruct.meanV(j))
+            grid on
+            legend('S(v)','S_{model}(v)')
+            if plotFlag == 2
+                pause
+            else
+                drawnow
+            end
+         end
+
         j = j+1;
         wherestep = [num2str(window + 1) ' of ' num2str(Nb)];
         fprintf(1,'	step %s		\r',wherestep);
