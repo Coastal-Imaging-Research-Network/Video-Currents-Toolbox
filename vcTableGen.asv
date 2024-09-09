@@ -1,0 +1,38 @@
+function [vcTable] = vcTableGen(inputDat, params)
+
+% Step 1: Initialize the table with y-values and cam-values
+vcTable = table([], [], [], 'VariableNames', {'y', 'vC', 'wV'});
+count = 1; 
+for j = 1:params.numCams
+    fieldNameJ = sprintf('cam%1.0d', j);
+    for k = 1:length(inputDat.(fieldNameJ).yCentres)
+        y = inputDat.(fieldNameJ).yGrid(:,1); 
+        
+        y1 = inputDat.(fieldNameJ).yCentres(k) - params.tileSize/2;    % start point 
+        y2 = inputDat.(fieldNameJ).yCentres(k) + params.tileSize/2;    % end point
+        
+        i1 = find(y == y1, 1, 'first'); 
+        i2 = find(y == y2, 1, 'first'); 
+
+        % Ensure indices are within y-search bounds
+        if isempty(i1) || isempty(i2)
+            continue;
+        end
+
+        % Run video-current-toolbox
+        % stack, time, xy, vBounds, fkBounds, Twin, Tstep {plotFlag})
+        stack = inputDat.(fieldNameJ).rawGrid(i1:i2,:)'; 
+        vC = videoCurrentGen(stack,  params.mtime, inputDat.(fieldNameJ).yGrid(i1:i2,1)
+           inputDat.(fieldNameJ).yGrid(i1:i2,1), params.vBounds, params.fkBounds, params.tWindow, params.tStep, params.plotFlag);
+    end
+        % Save vC to the table
+        vcTable.y(count) = inputDat.(fieldNameJ).yCentres(k);       % midpoint
+        vcTable.vC(count) = vC;
+        vcTable.wV(j) = wmean(vcTable.vC(j).meanV, 1./vcTable.vC(j).stdV, 'omitnan');
+        newRow = table(y, vC, wV);
+        vcTable = [vcTable; newRow];
+end
+
+vcTable = sortrows(vcTable, 1);
+   
+end

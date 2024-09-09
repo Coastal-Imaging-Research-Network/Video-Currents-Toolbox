@@ -1,4 +1,4 @@
-function [T, RAW, XYZ, CAM] = loadVbarRawFile(fileSearchPath, searchDate, searchX)
+function [sampleStack] = loadVbarRawFile(fileSearchPath, searchDate, searchX)
 % masterFolder: the master directory to search
     % targetDate: the date to match (datetime format)
     % xLocation: the x-location to match (double)
@@ -48,18 +48,6 @@ function [T, RAW, XYZ, CAM] = loadVbarRawFile(fileSearchPath, searchDate, search
     for i = 1:length(filteredFiles)
         filePath = fullfile(filteredFiles(i).folder, filteredFiles(i).name);
         disp(['Loading file: ', filePath]);
-        data = load(filePath, 'XYZ', 'T', 'RAW', 'CAM');
-
-        % Check if the variables exist and then process them as needed
-        if isfield(data, 'XYZ') && isfield(data, 'T') && isfield(data, 'RAW') && isfield(data, 'CAM')
-            XYZ = data.XYZ;
-            T = data.T;
-            RAW = data.RAW;
-            CAM = data.CAM;
-            % Process the variables as needed
-            disp('Variables loaded: XYZ, T, RAW, CAM');
-        else
-            disp('One or more variables not found in the file.');
-        end
+        sampleStack = load(filePath, 'XYZ', 'T', 'RAW', 'CAM');
     end
 end

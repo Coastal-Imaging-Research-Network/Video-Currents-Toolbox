@@ -8,7 +8,7 @@ params.delY = 0.2;                                                           % g
 y = params.yLims(1):params.delY:params.yLims(2);                             % define the y-grid
 params.yCam = 565;                                                           % y-location of the camera (m)
 params.tileSize = 20; % m 
-params.searchDate = datetime(2017, 10, 01, 15, 59, 00);                       % Useful for output figures & search/ load function 
+params.searchDate = datetime(2017, 10, 01, 15, 59, 00);                       % This date corresponds to the demo data
 
                     % *** NEW VARIABLE -- image sampling frequency ***
                     %       So that params.tWindow * params.fSample = number of points in the window
@@ -21,13 +21,12 @@ params.tStep = 32;   % s                                                        
 
 params.vBounds = [];  % m/s                                                 % if empty, vBounds are defined by the Radon step                                                
 params.radonCamNum = 1;                                                     % select camera to use y bounds for radon filter
-params.fkBounds = [];                                                       % [fmin fmax kmin kmax], vector of search frequency and wavenumber windows
+params.fkBounds = [0.015 0.5 0.02 0.5];                                     % [fmin fmax kmin kmax], vector of search frequency and wavenumber windows
 
 params.plotFlag = 0;
 
 
 % NOTES: 
-% 
 % vBounds min should be just greater than 0, to eliminate stationary objects
 % from analysis
 % 

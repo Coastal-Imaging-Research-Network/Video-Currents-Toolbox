@@ -2,8 +2,8 @@
 %   where the original function is defined:
 % videoCurrentOut = videoCurrentGen(stack, time, xy, vB, fkB, Twin, Tstep, plotFlag);
 %   & the inputs are as follows:
-% stack: data [
-% time: time vector (matlab datenum) with size [Mx1s]
+% stack: RAW [MxN]
+% time: time vector (matlab datenum) with size [1xM]
 % xy: xyzAll [Nx3] & x-search locations
 % vB: (vBounds) [minV maxV], units m/s or vector of desired velocity steps,
 %       to set this to empty, [], to use defaults [-3 3] ***These defaults
@@ -21,13 +21,12 @@
 %% Part 1: Set Up
 
 % params definitions moved to a new file
-paramsFile = ("vidCurrentsParams");
-eval(paramsFile);
+run vidCurrentsParams.m;
 
+% If you have a folder with multiple 
 % fileSearchPath is the folder within which the function vBarRawFile will
 % search for the "raw" data file
 fileSearchPath = ("D:\Elora PhD\GitHub\Video-Currents-Toolbox");
-
 [T, RAW, XYZ, CAM] = loadVbarRawFile(fileSearchPath, params.searchDate, params.searchX);
 
 % time is loaded as epoch, so convert it to datetime for plotting
@@ -134,9 +133,6 @@ for j = 1:params.numCams
 
         % Run video-current-toolbox
         vC = videoCurrentGen(inputDat.(fieldNameJ).rawGrid(i1:i2,:)', params.mtime, inputDat.(fieldNameJ).yGrid(i1:i2,:), params.vBounds, params.fkBounds, params.tWindow, params.tStep, params.plotFlag);
-        vC.ci1 = vC.ci(:, 1);
-        vC.ci2 = vC.ci(:, 2);
-        vC = rmfield(vC, "ci");
 
         % Save vC to the table
         vcTable.y(count) = inputDat.(fieldNameJ).yCentres(k);       % midpoint

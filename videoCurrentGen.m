@@ -1,11 +1,15 @@
 function dataStruct = videoCurrentGen(stack,time,xy,vB,fkB,tWin,tStep,varargin)
 
-%dataStruct = videoCurrentGen(stack, time, xy, vBounds, fkBounds, Twin, Tstep {,plotFlag})
+%dataStruct = videoCurrentGen(stack, time, xy, vBounds, fkBounds, Twin, Tstep {plotFlag})
 %
 %  Returns current from video stacks at times in t
 %  by converting a block of the stack to f,ky space to find
 %  the velocity of the advected surface structure(usually foam).
-%  INPUTS
+% 
+% If M = the variable length of time 
+%   & N = the variable length of space (y) 
+% 
+% INPUTS
 %    stack - grayscale image of timestack, size [MxN]
 %    time - time line (starting from zero) of stack, size [Mx1]
 %    xy - x,y position [Nx2] of each pixel in a dimension (should be equally spaced!)
@@ -30,7 +34,6 @@ function dataStruct = videoCurrentGen(stack,time,xy,vB,fkB,tWin,tStep,varargin)
 %    vAngle - orientation of the pixel array (radians)
 %
 
-
 %  This code requires:
 %     Optimization Tollbox (lsqcurvefit.m)
 %     Statistics and Machine Learning Toolbox (nlparci.m)
@@ -39,6 +42,7 @@ function dataStruct = videoCurrentGen(stack,time,xy,vB,fkB,tWin,tStep,varargin)
 % take care of inputs and constants
 dt = abs(mean(diff(time*24*3600)));
 y = cumsum([0; 0; sqrt(sum(diff(xy).^2,2))]);
+
 %vAngle = angle(diff(xy([1 end],:)).*[1 i]);
 dy = abs(mean(diff(y)));
 N = size(stack,2);
@@ -46,9 +50,6 @@ M = tWin;
 L = dy*N;
 T = dt*M;
 taper = bartlett(M)*bartlett(N)';
-if isempty(vB) % set the velocity bounds if empty
-    vB = [-3 3];
-end
 dv = 0.05;
 switch length(vB)
     case 2
@@ -105,7 +106,9 @@ dataStruct.QCspan = nan(1,Nb);
 dataStruct.meanV = nan(1,Nb);
 dataStruct.stdV = nan(1,Nb);
 dataStruct.prob = nan(1,Nb);
-dataStruct.ci = nan(Nb,2);
+dataStruct.stdI = nan(1,Nb);
+dataStruct.ci1 = nan(1,Nb);
+dataStruct.ci2 = nan(1,Nb);
 dataStruct.cispan = nan(1,Nb);
 dataStruct.SNR = nan(1,Nb);
 dataStruct.t = nan(1,Nb);
@@ -115,7 +118,7 @@ for window = 0:(Nb-1)
     % window data and construct
     cind = ((window*tStep)+1):((window*tStep)+tWin);
     block = stack(cind,:);
-    meanStack2 = mean(block(:));
+    meanStack2 = mean(block(:), 'omitnan');
     dataStruct.meanI(j) = meanStack2;
     dataStruct.stdI(j) = std(block(:));
     block = block-repmat(mean(block),tWin,1); % block = stack minus mean
@@ -169,11 +172,11 @@ for window = 0:(Nb-1)
         dataStruct.t(j) = mean(time(cind));
 
         % Note to revisit
-         if plotFlag
-            figure
-            subplot(221)
-            imagesc(y,1:size(block,1)*dt,block)
-            hold on
+         if plotFlag == 1
+            figure()
+            T4 = tiledlayout(2,2);
+            nexttile();
+            pcolor(xy,1:size(block,1)*dt,block); hold on; 
             ylabel('time (s)','fontsi',14)
             xlabel('y position (m)','fontsi',14)
             %plot([min(y) ],[])
