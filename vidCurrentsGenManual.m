@@ -110,7 +110,7 @@ pcolor(inputDat.cam1.tGrid, inputDat.cam1.yGrid, inputDat.cam1.rawGrid);
 shading flat; colormap(gray);
 xlabel('Time'); ylabel('y-position (m)');
 
-%% Part 2: Run the main function
+%% Part 4: Run the main function
 
 % Step 1: Initialize the table with y-values and cam-values
 vcTable = table();
