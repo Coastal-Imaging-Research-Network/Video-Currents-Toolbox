@@ -23,15 +23,16 @@ sampleStack = loadVbarRawFile(fileSearchPath, params.searchDate, params.searchX)
 params.mtime = (sampleStack.T/(3600*24)+datenum(1970,1,1))';
 params.dTime = datetime(params.mtime, 'ConvertFrom', 'datenum');
 
+% Extract the number of cameras in your data 
 params.numCams = max(sampleStack.CAM, [], 'all');
 
 % Sort the camera data & prep it for input
-[inpDat] = prepDataForInput(sampleStack,params); 
+[inpDat] = prepDataForInput(sampleStack,params);  % <-- This line might take awhile! be patient :) 
 
 % If you aren't sure which direction the current is heading (north/ south),
-% leave the params.vBounds empty & use the following function: 
-% When plotFlag == 1, the following function will also output a figure that
-% you can verify & visualize the direction of foam propagation
+% leave the params.vBounds empty & use radonVbarDir: 
+%       when plotFlag == 1, the following function will also output a figure that
+%       you can verify & visualize the direction of foam propagation
 plotFlag = 1; 
 if isempty(params.vBounds)
     [params] = radonVbarDir(inpDat, params, plotFlag); 
