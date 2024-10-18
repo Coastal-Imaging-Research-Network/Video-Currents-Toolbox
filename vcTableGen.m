@@ -29,15 +29,13 @@ for j = 1:params.numCams
                 params.vBounds, params.fkBounds, params.tWindow, params.tStep, params.plotFlag);
 
         % Save vC to the table
-        vcTable.y{count} = inputDat.(fieldNameJ).yCentres(k);       % midpoint
+        vcTable.x(count) = params.searchX; 
+        vcTable.y(count) = inputDat.(fieldNameJ).yCentres(k);       % midpoint
         vcTable.vC{count} = vC; 
-        vcTable.wV{count} = wmean(vC.meanV, 1./vC.stdV, 'omitnan');
-        %newRow = {y, vC, wV};
-        %vcTable(2,:) = [vcTable; newRow];
+        vcTable.wV(count) = wmean(vC.meanV, 1./vC.stdV, 'omitnan');
         count = count+1; 
     end
 end
 
-vcTable = sortrows(vcTable, 1);
-   
+vcTable = sortrows(vcTable, 'y');   
 end

@@ -3,7 +3,7 @@
 % Define input parameters <-- Make this a separate file 
 %       (This is currently all in FRF local coordinates)
 params.yLims = [0 1100];                                                     % Maximum & minimum y-values you're looking at
-params.searchX = 125;                                                        % x-transect
+params.transects = [125, 150, 175, 200, 225];                                % x-transects
 params.delY = 0.2;                                                           % ground pixel spacing in y <-- ** RELEVANT FOR VB
 y = params.yLims(1):params.delY:params.yLims(2);                             % define the y-grid
 params.yCam = 565;                                                           % y-location of the camera (m)

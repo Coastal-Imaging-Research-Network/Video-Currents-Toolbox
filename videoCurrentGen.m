@@ -215,7 +215,7 @@ for window = 0:(Nb-1)
 
         j = j+1;
         wherestep = [num2str(window + 1) ' of ' num2str(Nb)];
-        fprintf(1,'	step %s		\r',wherestep);
+        %fprintf(1,'	step %s		\r',wherestep);
     catch
         warning('Nonlinear fit failed - skipping this record')
     end
