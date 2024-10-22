@@ -48,10 +48,9 @@ if plotFlag
 end
 
 % Detect the angle of the highest peak
-detected_angle = theta(locations(peaks == max(peaks)));  % Angle of the highest peak
-
-neg_angle_energy = sum(peak1d(find(theta >= -60 & theta >= -5)));  % Sum energy over all negative angles
-pos_angle_energy = sum(peak1d(find(theta >= 5 & theta >= 60)));  % Sum energy over all positive angles
+%detected_angle = theta(locations(peaks == max(peaks)));  % Angle of the highest peak
+neg_angle_energy = sum(maxR(theta >= -60 & theta >= -5));  % Sum energy over all negative angles
+pos_angle_energy = sum(maxR(theta >= 5 & theta >= 60));  % Sum energy over all positive angles
 
 % Interpretation of the detected angle for setting velocity bounds (vBounds)
 if neg_angle_energy > pos_angle_energy

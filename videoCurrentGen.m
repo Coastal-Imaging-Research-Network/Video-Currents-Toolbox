@@ -22,6 +22,7 @@ function dataStruct = videoCurrentGen(stack,time,xy,vB,fkB,tWin,tStep,varargin)
 %      of the wave contamination that leaks in.  Set this to empty, [], to use defaults.
 %    {plotFlag} - optional, if true (~=0) will display a running plot of the
 %      data processing
+
 %  OUTPUT fields in dataStruct returned:
 %    meanV - OCM guess at the mean current for the timestep
 %    t - time index for meanV

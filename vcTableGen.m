@@ -1,4 +1,4 @@
-function [vcTable] = vcTableGen(inputDat, params)
+function [vcTable] = vcTableGen(inputDat, params, xLocation)
 
 % Step 1: Initialize the table with y-values and cam-values
 %vcTable = table([], struct([]), [], 'VariableNames', {'y', 'vC', 'wV'});
@@ -16,11 +16,6 @@ for j = 1:params.numCams
         i1 = find(y == y1, 1, 'first'); 
         i2 = find(y == y2, 1, 'first'); 
 
-        % Ensure indices are within y-search bounds
-        if isempty(i1) || isempty(i2)
-            continue;
-        end
-
         % Run video-current-toolbox
         % stack, time, xy, vBounds, fkBounds, Twin, Tstep {plotFlag})
         stack = inputDat.(fieldNameJ).rawGrid(i1:i2,:)'; 
@@ -29,7 +24,7 @@ for j = 1:params.numCams
                 params.vBounds, params.fkBounds, params.tWindow, params.tStep, params.plotFlag);
 
         % Save vC to the table
-        vcTable.x(count) = params.searchX; 
+        vcTable.x(count) = xLocation; 
         vcTable.y(count) = inputDat.(fieldNameJ).yCentres(k);       % midpoint
         vcTable.vC{count} = vC; 
         vcTable.wV(count) = wmean(vC.meanV, 1./vC.stdV, 'omitnan');

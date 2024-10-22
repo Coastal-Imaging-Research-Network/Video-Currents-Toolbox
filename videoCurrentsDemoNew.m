@@ -21,15 +21,16 @@ fileSearchPath = 'D:\Argus Downloads';
 
 % Time is initially defined as epoch, so let's convert it to datetime for
 % easier figure interpretation
-params.mtime = (sampleStack.T/(3600*24)+datenum(1970,1,1))';
+params.mtime = (sampleStack{1}.T/(3600*24)+datenum(1970,1,1))';
 params.dTime = datetime(params.mtime, 'ConvertFrom', 'datenum');
 
 % Extract the number of cameras in your data
-params.numCams = max(sampleStack.CAM, [], 'all');
+params.numCams = max(sampleStack{1}.CAM, [], 'all');
 
 % Sort the camera data & prep it for input
-for i = 1:length(params.transect)
-    [inpDat.(params.transects(i))] = prepDataForInput(sampleStack{i}, params);  % <-- This line might take awhile! be patient :)
+for i = 1:length(params.transects)
+    fieldNameI = sprintf('x%1.0d', params.transects(i));
+    [inpDat.(fieldNameI)] = prepDataForInput(sampleStack{i}, params);  % <-- This line might take awhile! be patient :)
 end 
 
 % If you aren't sure which direction the current is heading (north/ south),
@@ -40,31 +41,72 @@ plotFlag = 1;
 if isempty(params.vBounds)
     % select y bounds for radon to test
     radonCam = sprintf('cam%1.0d', params.radonCamNum);
-    [params] = radonVbarDir(inpDat.(radonCam), params, plotFlag);
+    [params] = radonVbarDir(inpDat.(fieldNameI).(radonCam), params, plotFlag);
 end
 
 % Run the videoCurrentGen code
-[vcTable] = vcTableGen(inpDat, params);
-
+[vcTable125] = vcTableGen(inpDat.x125, params, params.transects(1));
+[vcTable150] = vcTableGen(inpDat.x150, params, params.transects(2)); 
+[vcTable175] = vcTableGen(inpDat.x175, params, params.transects(3)); 
+[vcTable200] = vcTableGen(inpDat.x200, params, params.transects(4)); 
+[vcTable225] = vcTableGen(inpDat.x225, params, params.transects(5)); 
 
 %% Plot the Data
 
 figure();
 tcolor(timex.x, timex.y, timex.Ip, 'corners'); shading flat; hold on;
 axis tight equal; set(gca, 'Layer', 'top', 'FontName', 'Cambria', 'FontSize', 14, 'box', 'on');
-scatter(vcTable.x, vcTable.y, 20, vcTable.wV, 'o', 'filled', 'MarkerEdgeColor', 'k');
+scatter(vcTable125.x, vcTable125.y, 20, vcTable125.wV, 'o', 'filled', 'MarkerEdgeColor', 'k');
+scatter(vcTable150.x, vcTable150.y, 20, vcTable150.wV, 'o', 'filled', 'MarkerEdgeColor', 'k');
+scatter(vcTable175.x, vcTable175.y, 20, vcTable175.wV, 'o', 'filled', 'MarkerEdgeColor', 'k');
+scatter(vcTable200.x, vcTable200.y, 20, vcTable200.wV, 'o', 'filled', 'MarkerEdgeColor', 'k');
+scatter(vcTable225.x, vcTable225.y, 20, vcTable225.wV, 'o', 'filled', 'MarkerEdgeColor', 'k');
+
 xlabel('x (m)'); ylabel('y (m)');
 ylim([params.yLims(1) params.yLims(2)])
 c = colorbar();
-colormap(redblue);
+colormap(parula);
 
-%  OUTPUT fields in videoCurrentOut returned:
-%    meanV - video current estimate of mean current for each time window
-%    t - time index for meanV
-%    ci - the 95% conf. interval around meanV
-%    cispan -  the width of ci
-%    prob - the probability of the model fit
-%    QCspan - the 95th percentile minus the 50th percentile of the timestack
-%             histogram, used to measure the amount of video "texture"
-%    stdV - the width (std. dev.) of the energy in velocity spectrum
-%    vAngle - orientation of the pixel array (radians)
+%% 
+figure(); 
+T = tiledlayout(1, 5); 
+
+nexttile(); 
+plot(vcTable125, "wV", "y"); 
+xlabel('v_y (m/s)'); ylabel('y-position (m)');
+title(sprintf('x = %d', vcTable125.x(1))); 
+xlim([floor(min(vcTable125.wV)) ceil(max(vcTable125.wV))]);
+ylim([min(params.yLims) max(params.yLims)])
+set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
+
+nexttile(); 
+plot(vcTable150.wV, vcTable150.y); 
+xlabel('v_y (m/s)');
+title(sprintf('x = %d', vcTable150.x(1))); 
+xlim([floor(min(vcTable150.wV)) ceil(max(vcTable150.wV))]);
+ylim([min(params.yLims) max(params.yLims)])
+set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
+
+nexttile(); 
+plot(vcTable175.wV, vcTable175.y); 
+xlabel('v_y (m/s)');
+title(sprintf('x = %d', vcTable175.x(1))); 
+xlim([floor(min(vcTable175.wV)) ceil(max(vcTable175.wV))]);
+ylim([min(params.yLims) max(params.yLims)])
+set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
+
+nexttile(); 
+plot(vcTable200.wV, vcTable200.y); 
+xlabel('v_y (m/s)');
+title(sprintf('x = %d', vcTable200.x(1))); 
+xlim([floor(min(vcTable200.wV)) ceil(max(vcTable200.wV))]);
+ylim([min(params.yLims) max(params.yLims)])
+set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
+
+nexttile(); 
+plot(vcTable225.wV, vcTable225.y); 
+xlabel('v_y (m/s)');
+title(sprintf('x = %d', vcTable225.x(1))); 
+xlim([floor(min(vcTable225.wV)) ceil(max(vcTable225.wV))]);
+ylim([min(params.yLims) max(params.yLims)])
+set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
