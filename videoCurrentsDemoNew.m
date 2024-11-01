@@ -1,7 +1,3 @@
-% Description:
-
-
-
 %% Inputs
 
 % First, let's customize the input parameters file
@@ -72,7 +68,7 @@ figure();
 T = tiledlayout(1, 5); 
 
 nexttile(); 
-plot(vcTable125, "wV", "y"); 
+scatter(vcTable125.wV, vcTable125.y, 'o', 'filled'); 
 xlabel('v_y (m/s)'); ylabel('y-position (m)');
 title(sprintf('x = %d', vcTable125.x(1))); 
 xlim([floor(min(vcTable125.wV)) ceil(max(vcTable125.wV))]);
@@ -80,7 +76,7 @@ ylim([min(params.yLims) max(params.yLims)])
 set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
 
 nexttile(); 
-plot(vcTable150.wV, vcTable150.y); 
+scatter(vcTable150.wV, vcTable150.y, 'o', 'filled'); 
 xlabel('v_y (m/s)');
 title(sprintf('x = %d', vcTable150.x(1))); 
 xlim([floor(min(vcTable150.wV)) ceil(max(vcTable150.wV))]);
@@ -88,7 +84,7 @@ ylim([min(params.yLims) max(params.yLims)])
 set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
 
 nexttile(); 
-plot(vcTable175.wV, vcTable175.y); 
+scatter(vcTable175.wV, vcTable175.y, 'o', 'filled'); 
 xlabel('v_y (m/s)');
 title(sprintf('x = %d', vcTable175.x(1))); 
 xlim([floor(min(vcTable175.wV)) ceil(max(vcTable175.wV))]);
@@ -96,7 +92,7 @@ ylim([min(params.yLims) max(params.yLims)])
 set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
 
 nexttile(); 
-plot(vcTable200.wV, vcTable200.y); 
+scatter(vcTable200.wV, vcTable200.y, 'o', 'filled'); 
 xlabel('v_y (m/s)');
 title(sprintf('x = %d', vcTable200.x(1))); 
 xlim([floor(min(vcTable200.wV)) ceil(max(vcTable200.wV))]);
@@ -104,7 +100,7 @@ ylim([min(params.yLims) max(params.yLims)])
 set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
 
 nexttile(); 
-plot(vcTable225.wV, vcTable225.y); 
+scatter(vcTable225.wV, vcTable225.y, 'o', 'filled'); 
 xlabel('v_y (m/s)');
 title(sprintf('x = %d', vcTable225.x(1))); 
 xlim([floor(min(vcTable225.wV)) ceil(max(vcTable225.wV))]);
