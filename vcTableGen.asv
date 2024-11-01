@@ -28,7 +28,7 @@ for j = 1:params.numCams
         vcTable.y(count) = inputDat.(fieldNameJ).yCentres(k);       % midpoint
         vcTable.vC{count} = vC; 
         vcTable.wV(count) = wmean(vC.meanV, 1./vC.stdV, 'omitnan');
-        vcTable.camNum(count) = j; 
+        vcTable.numCam{count} = fieldNameJ; 
         count = count+1; 
     end
 end

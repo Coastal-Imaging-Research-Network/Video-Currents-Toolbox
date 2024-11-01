@@ -37,7 +37,7 @@ for j = 1:max(double(sampleStack.CAM))
     inpDat.(fieldNameI).rawGrid = griddata(tempXY(:,2), time, double(tempRAW), yGrid, tGrid, 'natural');
 
     % Define the center points of the analysis windows
-    inpDat.(fieldNameI).yCentres = minY+(params.tileSize/2):params.tileSize:(maxY-params.tileSize/2);
+    inpDat.(fieldNameI).yCentres = (minY+params.tileSize/2):params.tileSize:(maxY-params.tileSize/2);
 end
 
 end

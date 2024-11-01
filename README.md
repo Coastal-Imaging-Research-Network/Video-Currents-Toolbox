@@ -1,7 +1,7 @@
 # Video-Currents-Toolbox
 This repository contains code and documentation to quantify longshore surf-zone currents from video imagery.
 
-The code is written in MATLAB, and requires version *****
+The code is written in MATLAB, and requires version 2023b
 
 Based on the original work of: Chickadel, C.C., Holman, R.A. and Freilich, M.H., 2003. An optical technique for the measurement of longshore currents. Journal of Geophysical Research: Oceans, 108(C11).
 
