@@ -8,7 +8,7 @@ function [sampleStack, timex] = loadVbarRawFile(fileSearchPath, searchDate, tran
 % Convert the target date to the required format (e.g., 'Tue.Oct.17')
 targetDateStr = datestr(searchDate, 'ddd.mmm.dd');
 targetTimeStr1 = datestr(searchDate, 'HH_MM');  % e.g., '11_59'
-targetTimeStr2 = datestr(searchDate+minutes(1), 'HH_MM');
+targetTimeStr2 = datestr(searchDate-minutes(1), 'HH_MM');
 
 % Generate the path for all subfolders
 searchPath = genpath(fileSearchPath);
@@ -36,7 +36,7 @@ timexFiles = [];
 
 for i = 1:length(matFileNames)
     fileName = matFileNames(i).name;
-    if contains(fileName, targetDateStr) && contains(fileName, targetTimeStr2) && ...
+    if contains(fileName, targetDateStr) && contains(fileName, targetTimeStr1) && ...
             contains(fileName, '.timex.merge')
         timexFiles = [timexFiles; matFileNames(i)];
     end
@@ -46,7 +46,7 @@ for i = 1:length(matFileNames)
         transect = transects(j);
         transectStr = sprintf('.vbar%d', transect);  % Create the string for the current transect (e.g., .vbar125)
         % Check if the file name matches the desired pattern for vbar files
-        if contains(fileName, targetDateStr) && contains(fileName, targetTimeStr1) && ...
+        if contains(fileName, targetDateStr) && contains(fileName, targetTimeStr2) && ...
                 contains(fileName, 'vbar') && ...
                 contains(fileName, transectStr)  % Check the current transect
             vbarFiles{j} = [vbarFiles{j}; matFileNames(i)];  % Store vbar files for each transect

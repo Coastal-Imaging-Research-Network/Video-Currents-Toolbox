@@ -21,8 +21,8 @@ for j = 1:max(double(sampleStack.CAM))
     tempXY = camList.(fieldNameI).XY;
     tempRAW = camList.(fieldNameI).RAW;
 
-    minY = max(round(min(tempXY(:,2))), min(params.yLims));
-    maxY = min(round(max(tempXY(:,2))), max(params.yLims));
+    minY = max(ceil(min(tempXY(:,2))), min(params.yLims));
+    maxY = min(floor(max(tempXY(:,2))), max(params.yLims));
 
     % Use Y limits of camera (and T on x-axis) to create grid
     yBounds = minY : params.delY : maxY;

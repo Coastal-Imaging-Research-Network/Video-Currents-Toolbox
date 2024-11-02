@@ -8,7 +8,7 @@ params.delY = 0.2;                                                           % g
 y = params.yLims(1):params.delY:params.yLims(2);                             % define the y-grid
 params.yCam = 565;                                                           % y-location of the camera (m)
 params.tileSize = 10; % m 
-params.searchDate = datetime(2017, 10, 17, 15, 59, 00);                       % This date corresponds to the demo data
+params.searchDate = datetime(2017, 10, 17, 16, 00, 00);                       % This date corresponds to the demo data
 
                     % *** NEW VARIABLE -- image sampling frequency ***
                     %       So that params.tWindow * params.fSample = number of points in the window
