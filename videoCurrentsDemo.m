@@ -8,7 +8,6 @@ run vidCurrentsParams.m
 
 % If you'd like, you can use the search function to find the demo data
 % This comes in handy when you have folders with oodles of files
-fileSearchPath = ("D:\Elora PhD\GitHub\Video-Currents-Toolbox\DemoData");
 fileSearchPath = 'D:\Argus Downloads';
 [sampleStack, timex] = loadVbarRawFile(fileSearchPath, params.searchDate, params.transects);
 
@@ -46,6 +45,9 @@ end
 [vcTable175] = vcTableGen(inpDat.x175, params, params.transects(3)); 
 [vcTable200] = vcTableGen(inpDat.x200, params, params.transects(4)); 
 [vcTable225] = vcTableGen(inpDat.x225, params, params.transects(5)); 
+
+save("Processed Data\Oct13_output.mat", "vcTable225", "vcTable200", ...
+    "vcTable175", "vcTable150", "vcTable125", "inpDat", "timex"); 
 
 %% Plot the Data
 
