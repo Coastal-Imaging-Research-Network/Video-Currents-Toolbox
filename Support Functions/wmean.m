@@ -45,3 +45,5 @@ if nargin==2,
 end
 
 y = sum(w.*x,dim)./sum(w,dim);
+
+% Adam Auton (2024). wmean (https://www.mathworks.com/matlabcentral/fileexchange/14416-wmean), MATLAB Central File Exchange.

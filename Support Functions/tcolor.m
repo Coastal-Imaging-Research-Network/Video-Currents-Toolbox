@@ -70,3 +70,5 @@ end
 
 
 if (nargout==0) clear H; end;
+
+% Aslak Grinsted (2024). tcolor (a fast pcolor that likes RGB images) (https://www.mathworks.com/matlabcentral/fileexchange/3777-tcolor-a-fast-pcolor-that-likes-rgb-images), MATLAB Central File Exchange.
