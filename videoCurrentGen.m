@@ -39,7 +39,7 @@ function dataStruct = videoCurrentGen(stack,time,xy,vB,fkB,tWin,tStep,varargin)
 %     Optimization Tollbox (lsqcurvefit.m)
 %     Statistics and Machine Learning Toolbox (nlparci.m)
 
-
+stack = normalize(stack, 1, "zscore"); 
 % take care of inputs and constants
 dt = abs(mean(diff(time*24*3600)));
 y = cumsum([0; 0; sqrt(sum(diff(xy).^2,2))]);

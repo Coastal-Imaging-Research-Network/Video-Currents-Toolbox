@@ -1,4 +1,6 @@
 %% Inputs
+% Add access to demo data 
+q = genpath(cd); addpath(q); 
 
 % First, let's customize the input parameters file
 edit vidCurrentsParams
@@ -6,26 +8,33 @@ edit vidCurrentsParams
 % And load them
 run vidCurrentsParams.m
 
+params{1}.searchDate = datetime(2017,09,12,16,0,0); 
+params{2}.searchDate = datetime(2017,09,18,16,0,0);
+params{3}.searchDate = datetime(2017,09,26,12,0,0); 
+params{4}.searchDate = datetime(2017,10,01,16,0,0); 
+params{5}.searchDate = datetime(2017,10,13,14,0,0); 
+params{6}.searchDate = datetime(2017,10,17,13,0,0); 
+
 % If you'd like, you can use the search function to find the demo data
 % This comes in handy when you have folders with oodles of files
-fileSearchPath = 'D:\Argus Downloads';
-[sampleStack, timex] = loadVbarRawFile(fileSearchPath, params.searchDate, params.transects);
+fileSearchPath = ("/Users/eo/Library/CloudStorage/OneDrive-Queen'sUniversity/PhD/Chapter 4 vBar/vBar Toolbox Stuff");
+[sampleStack] = loadVbarRawFile(fileSearchPath, params{4}.searchDate, params{4}.transects);
 
 % Or, uncomment the following line to load example stack structure directly
 % sampleStack = load('1506873540.Sun.Oct.01_15_59_00.GMT.2017.argus02b.cx.vbar125.mat');
 
 % Time is initially defined as epoch, so let's convert it to datetime for
 % easier figure interpretation
-params.mtime = (sampleStack{1}.T/(3600*24)+datenum(1970,1,1))';
-params.dTime = datetime(params.mtime, 'ConvertFrom', 'datenum');
+params{4}.mtime = (sampleStack{1}.T/(3600*24)+datenum(1970,1,1))';
+params{4}.dTime = datetime(params{4}.mtime, 'ConvertFrom', 'datenum');
 
 % Extract the number of cameras in your data
-params.numCams = max(sampleStack{1}.CAM, [], 'all');
+params{4}.numCams = max(sampleStack{1}.CAM, [], 'all');
 
 % Sort the camera data & prep it for input
-for i = 1:length(params.transects)
-    fieldNameI = sprintf('x%1.0d', params.transects(i));
-    [inpDat.(fieldNameI)] = prepDataForInput(sampleStack{i}, params);  % <-- This line might take awhile! be patient :)
+for i = 1:length(params{4}.transects)
+    fieldNameI = sprintf('x%1.0d', params{4}.transects(i));
+    [inpDat.(fieldNameI)] = prepDataForInput(sampleStack{i}, params{4});  % <-- This line might take awhile! be patient :)
 end 
 
 % If you aren't sure which direction the current is heading (north/ south),
@@ -40,13 +49,13 @@ if isempty(params.vBounds)
 end
 
 % Run the videoCurrentGen code
-[vcTable125] = vcTableGen(inpDat.x125, params, params.transects(1));
-[vcTable150] = vcTableGen(inpDat.x150, params, params.transects(2)); 
-[vcTable175] = vcTableGen(inpDat.x175, params, params.transects(3)); 
-[vcTable200] = vcTableGen(inpDat.x200, params, params.transects(4)); 
-[vcTable225] = vcTableGen(inpDat.x225, params, params.transects(5)); 
+[vcTable125] = vcTableGen(inpDat.x125, params{4}, params{4}.transects(1));
+[vcTable150] = vcTableGen(inpDat.x150, params{4}, params{4}.transects(2)); 
+[vcTable175] = vcTableGen(inpDat.x175, params{4}, params{4}.transects(3)); 
+[vcTable200] = vcTableGen(inpDat.x200, params{4}, params{4}.transects(4)); 
+[vcTable225] = vcTableGen(inpDat.x225, params{4}, params{4}.transects(5)); 
 
-save("Processed Data\Oct13_output.mat", "vcTable225", "vcTable200", ...
+save("Processed Data\2017Oct01_output.mat", "vcTable225", "vcTable200", ...
     "vcTable175", "vcTable150", "vcTable125", "inpDat", "timex"); 
 
 %% Plot the Data
@@ -74,7 +83,7 @@ scatter(vcTable125.wV, vcTable125.y, 'o', 'filled');
 xlabel('v_y (m/s)'); ylabel('y-position (m)');
 title(sprintf('x = %d', vcTable125.x(1))); 
 xlim([floor(min(vcTable125.wV)) ceil(max(vcTable125.wV))]);
-ylim([min(params.yLims) max(params.yLims)])
+ylim([min(params{4}.yLims) max(params{4}.yLims)])
 set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
 
 nexttile(); 
@@ -82,7 +91,7 @@ scatter(vcTable150.wV, vcTable150.y, 'o', 'filled');
 xlabel('v_y (m/s)');
 title(sprintf('x = %d', vcTable150.x(1))); 
 xlim([floor(min(vcTable150.wV)) ceil(max(vcTable150.wV))]);
-ylim([min(params.yLims) max(params.yLims)])
+ylim([min(params{4}.yLims) max(params{4}.yLims)])
 set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
 
 nexttile(); 
@@ -90,7 +99,7 @@ scatter(vcTable175.wV, vcTable175.y, 'o', 'filled');
 xlabel('v_y (m/s)');
 title(sprintf('x = %d', vcTable175.x(1))); 
 xlim([floor(min(vcTable175.wV)) ceil(max(vcTable175.wV))]);
-ylim([min(params.yLims) max(params.yLims)])
+ylim([min(params{4}.yLims) max(params{4}.yLims)])
 set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
 
 nexttile(); 
@@ -98,7 +107,7 @@ scatter(vcTable200.wV, vcTable200.y, 'o', 'filled');
 xlabel('v_y (m/s)');
 title(sprintf('x = %d', vcTable200.x(1))); 
 xlim([floor(min(vcTable200.wV)) ceil(max(vcTable200.wV))]);
-ylim([min(params.yLims) max(params.yLims)])
+ylim([min(params{4}.yLims) max(params{4}.yLims)])
 set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
 
 nexttile(); 
@@ -106,5 +115,5 @@ scatter(vcTable225.wV, vcTable225.y, 'o', 'filled');
 xlabel('v_y (m/s)');
 title(sprintf('x = %d', vcTable225.x(1))); 
 xlim([floor(min(vcTable225.wV)) ceil(max(vcTable225.wV))]);
-ylim([min(params.yLims) max(params.yLims)])
+ylim([min(params{4}.yLims) max(params{4}.yLims)])
 set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
