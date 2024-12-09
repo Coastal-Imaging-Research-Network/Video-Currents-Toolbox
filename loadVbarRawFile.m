@@ -55,8 +55,7 @@ for i = 1:length(matFileNames)
 end
 
 % Load the specified variables from the filtered files
-
-There should only be one timex
+% There should only be one timex
 if ~isempty(timexFiles)
     timex = load(fullfile(timexFiles.folder, timexFiles.name), 'x', 'y', 'Ip');
 else
