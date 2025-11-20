@@ -14,3 +14,5 @@ The "videoCurrentsDemoNew.m" code will run you through the program starting from
 If longshore current direction is unknown, params.vBounds = [], and a direction will be interpreted from the data using the radonVbarDir.m function.
 
 "tcolor.m", "wmean.m", "redblue.m" are support functions. 
+
+This toolbox was written by Elora M Oades, and is described in the paper "Optical remote sensing of wave-driven alongshore currents, informed by non-hydrostatic numerical modelling" by Elora M Oades, Ryan P Mulligan, and Margaret L Palmsten. 
