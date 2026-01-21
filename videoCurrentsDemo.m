@@ -1,83 +1,113 @@
-% Description:
-% This script applies the videoCurrentGen code to compute optical currents
-% for an example video-currents stack structure.
-%
-% Here, the expected fields of the stack structure are:
-% inst: 
-%        type: 'line'
-%        xyz: [x0 y0 z; x1 y1 z], where (x0,y0,z) and (x1,y1,z) are the
-%              endpoints of pixel line, e.g. a 20-m alongshore line:
-%              xyz: [115 640 0; 115 660 0], size [3x2]
-%        name: 'vBar115'
-% dn: time vector (matlab datenum) with size [Mx1s]
-% xyzAll: vector with x,y,z coordinates of points along pixel line
-%        instrument, size [Nx3]
-% data: grayscale image of timestack for one linear pixel instrument,
-%        with size [MxN]
-% Note on dimensions:
-%        M is the length of the whole record, e.g., for a 15 min video,
-%           subsampled at 2 Hz, M~1801
-%           The timestack will be analyzed in windows Twin (e.g., 64 s)
-%           for the video-current estimation in videoCurrentGen
-%        N is the length of pixel array given by points (x,y,z), e.g.,
-%           for a 20 m pixel array with .2 m spacing, N~101
-% Note on instruments:
-%        If there are multiple pixel instruments, adapt this script to loop
-%        through stackstruct(1), stackstruct(2), etc.
-%
-% (This should be the same form as the Aerielle video demo output from the
-%  2017 bootcamp.)
-
 %% Inputs
+% Add access to demo data 
+q = genpath(cd); addpath(q); 
 
-% Load example stack structure
-stackStruct = load('CIRN_example_stackstruct');
+% First, let's customize the input parameters file
+edit vidCurrentsParams
 
-% Grab stack: grayscale image of timestack, size [MxN]
-stack = stackStruct.data;
+% And load them
+run vidCurrentsParams.m
 
-% Grab time: time line (starting from zero) of stack, size [1xM]
-time = stackStruct.dn;
+% If you'd like, you can use the search function to find the demo data
+% This comes in handy when you have folders with oodles of files
+%       Replace the fileSearchPath with a folder within your directory 
+fileSearchPath = ("/Users/eo/Library/CloudStorage/OneDrive-Queen'sUniversity/PhD/Chapter 4 vBar/vBar Toolbox Stuff");
+[sampleStack] = loadVbarRawFile(fileSearchPath, params.searchDate, params.transects);
 
-% Grab xy: x,y position [Nx2] of each pixel in a dimension (equally spaced)
-xyz = stackStruct.xyzAll;
-xy = xyz(:,1:2);
+% Or, uncomment the following line to load example stack structure directly
+% sampleStack = load('1506873540.Sun.Oct.01_15_59_00.GMT.2017.argus02b.cx.vbar125.mat');
 
-% Set Twin: the time length of the FFT window (in points)
-% For 2 Hz data, Twin = 128 will yield a 64s average current
-Twin = 128; 
+% Time is initially defined as epoch, so let's convert it to datetime for
+% easier figure interpretation
+params.mtime = (sampleStack{1}.T/(3600*24)+datenum(1970,1,1))';
+params.dTime = datetime(params.mtime, 'ConvertFrom', 'datenum');
 
-% Set Tstep: time length to step the window (in points)
-% For 2 Hz data, Tstep = 64 will yield a current estimate every 32 s
-Tstep = 64; 
+% Extract the number of cameras in your data
+params.numCams = max(sampleStack{1}.CAM, [], 'all');
 
-% Set vBounds: [minV maxV], units m/s or vector of desired velocity steps,
-% Set this to empty, [], to use defaults [-3 3]
-vB = [];
+% Sort the camera data & prep it for input
+for i = 1:length(params.transects)
+    fieldNameI = sprintf('x%1.0d', params.transects(i));
+    [inpDat.(fieldNameI)] = prepDataForInput(sampleStack{i}, params);  % <-- This line might take awhile! be patient :)
+end 
 
-% Set fkBounds = [fmin fmax kmin kmax], vector of frequency and wavenumber
-%      bounds energy out of side of these bounds will be set to 0.  Useful
-%      to eliminate some of the wave contamination that leaks in.  Set this
-%      to empty, [], to use defaults.
-fkB = [];
-
-% Set {plotFlag}: optional, if true (~=0) will display a running plot of
-%      the data processing
+% If you aren't sure which direction the current is heading (north/ south),
+% leave the params.vBounds empty & use radonVbarDir:
+%       when plotFlag == 1, the following function will also output a figure that
+%       you can verify & visualize the direction of foam propagation
 plotFlag = 1;
+if isempty(params.vBounds)
+    % select y bounds for radon to test
+    radonCam = sprintf('cam%1.0d', params.radonCamNum);
+    [params] = radonVbarDir(inpDat.(fieldNameI).(radonCam), params, plotFlag);
+end
 
-%% Run the videoCurrentGen code
+% Run the videoCurrentGen code
+[vcTable125] = vcTableGen(inpDat.x125, params, params.transects(1));
+[vcTable150] = vcTableGen(inpDat.x150, params, params.transects(2)); 
+[vcTable175] = vcTableGen(inpDat.x175, params, params.transects(3)); 
+[vcTable200] = vcTableGen(inpDat.x200, params, params.transects(4)); 
+[vcTable225] = vcTableGen(inpDat.x225, params, params.transects(5)); 
 
-% Run code
-videoCurrentOut = videoCurrentGen(stack, time, xy, vB, fkB, ...
-    Twin, Tstep, plotFlag);
+save("Processed Data\2017Oct01_output.mat", "vcTable225", "vcTable200", ...
+    "vcTable175", "vcTable150", "vcTable125", "inpDat", "timex"); 
 
-%  OUTPUT fields in videoCurrentOut returned:
-%    meanV - video current estimate of mean current for each time window
-%    t - time index for meanV
-%    ci - the 95% conf. interval around meanV
-%    cispan -  the width of ci
-%    prob - the probability of the model fit
-%    QCspan - the 95th percentile minus the 50th percentile of the timestack
-%             histogram, used to measure the amount of video "texture"
-%    stdV - the width (std. dev.) of the energy in velocity spectrum
-%    vAngle - orientation of the pixel array (radians)
+%% Plot the Data over the Timex 
+
+figure();
+tcolor(timex.x, timex.y, timex.Ip, 'corners'); shading flat; hold on;
+axis tight equal; set(gca, 'Layer', 'top', 'FontName', 'Cambria', 'FontSize', 14, 'box', 'on');
+scatter(vcTable125.x, vcTable125.y, 20, vcTable125.wV, 'o', 'filled', 'MarkerEdgeColor', 'k');
+scatter(vcTable150.x, vcTable150.y, 20, vcTable150.wV, 'o', 'filled', 'MarkerEdgeColor', 'k');
+scatter(vcTable175.x, vcTable175.y, 20, vcTable175.wV, 'o', 'filled', 'MarkerEdgeColor', 'k');
+scatter(vcTable200.x, vcTable200.y, 20, vcTable200.wV, 'o', 'filled', 'MarkerEdgeColor', 'k');
+scatter(vcTable225.x, vcTable225.y, 20, vcTable225.wV, 'o', 'filled', 'MarkerEdgeColor', 'k');
+
+xlabel('x (m)'); ylabel('y (m)');
+ylim([params.yLims(1) params.yLims(2)])
+c = colorbar();
+colormap(parula);
+
+%% Scatter Plot of 5 Transects 
+figure(); 
+T = tiledlayout(1, 5); 
+
+nexttile(); 
+scatter(vcTable125.wV, vcTable125.y, 'o', 'filled'); 
+xlabel('v_y (m/s)'); ylabel('y-position (m)');
+title(sprintf('x = %d', vcTable125.x(1))); 
+xlim([floor(min(vcTable125.wV)) ceil(max(vcTable125.wV))]);
+ylim([min(params.yLims) max(params.yLims)])
+set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
+
+nexttile(); 
+scatter(vcTable150.wV, vcTable150.y, 'o', 'filled'); 
+xlabel('v_y (m/s)');
+title(sprintf('x = %d', vcTable150.x(1))); 
+xlim([floor(min(vcTable150.wV)) ceil(max(vcTable150.wV))]);
+ylim([min(params.yLims) max(params.yLims)])
+set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
+
+nexttile(); 
+scatter(vcTable175.wV, vcTable175.y, 'o', 'filled'); 
+xlabel('v_y (m/s)');
+title(sprintf('x = %d', vcTable175.x(1))); 
+xlim([floor(min(vcTable175.wV)) ceil(max(vcTable175.wV))]);
+ylim([min(params.yLims) max(params.yLims)])
+set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
+
+nexttile(); 
+scatter(vcTable200.wV, vcTable200.y, 'o', 'filled'); 
+xlabel('v_y (m/s)');
+title(sprintf('x = %d', vcTable200.x(1))); 
+xlim([floor(min(vcTable200.wV)) ceil(max(vcTable200.wV))]);
+ylim([min(params.yLims) max(params.yLims)])
+set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
+
+nexttile(); 
+scatter(vcTable225.wV, vcTable225.y, 'o', 'filled'); 
+xlabel('v_y (m/s)');
+title(sprintf('x = %d', vcTable225.x(1))); 
+xlim([floor(min(vcTable225.wV)) ceil(max(vcTable225.wV))]);
+ylim([min(params.yLims) max(params.yLims)])
+set(gca, 'FontName', 'Cambria', 'FontSize', 12, 'box', 'on');
